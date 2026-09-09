@@ -194,6 +194,8 @@ stl-upload запускається як один довгоживучий Node/
 - NFR throughput ≥5 req/s на інстанс (PRD §6) — досяжно в межах одного інстансу для MVP-навантаження.
 - Горизонтальне масштабування (кілька інстансів) вимагає спершу міграції з ADR-0003 (локальний диск → object storage) — задокументовано як accepted debt у §11.
 
+**Cross-module coupling (з ADR-0003):** quote-engine має бути спів-розташований на тому ж хості/диску, що й stl-upload, доки діє ADR-0003 (локальна файлова система) — quote-engine читає валідну модель напряму з диска (§5 C4 Container `Rel(quote_engine, fs, ...)`), без API-виклику до stl-upload.
+
 <!-- N/A not applicable: this is the feature's first deployment unit, not a reuse of an existing one -->
 
 
@@ -235,7 +237,7 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 **QG-2. Безпека обробки недовірених файлів (Security)**
 - **When:** зловмисний/пошкоджений STL потрапляє у sandboxed child process (ADR-0002).
-- **Then:** exploit або crash парсера не впливає на host-процес чи інші запити; child process обмежений по пам'яті/часу, без мережевого доступу (PRD §6.1 abuse case #1-2, дослівно).
+- **Then:** exploit або crash парсера не впливає на host-процес чи інші запити; child process обмежений по пам'яті/часу, без мережевого доступу (PRD §6.1 abuse case #1, дослівно).
 - **How verify:** security review — Required (PRD §6.1) + тестовий набір з malformed/oversized/zip-bomb-style STL-файлів проти sandbox boundary.
 
 **QG-3. Продуктивність синхронної перевірки (Speed)**
