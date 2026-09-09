@@ -90,7 +90,40 @@ Each tactical decision in later sections should be traceable to one of these str
 
 ## 5. Building block view
 
-<!-- pending §5 draft -->
+Простий шаровий стиль (routes/services/repositories) — перша фіча в грінфілд-репозиторії, вибрано замість гексагонального через 2-тижневий solo-дедлайн (§2): менше файлів/інтерфейсів на старті. → ADR-0004. Фізична межа — один Node/TS-сервіс: недовірений парсинг виконується як forked child process (ADR-0002) *всередині* цього ж сервісу, не окремим воркер-деплойментом (узгоджено з §4 sync/no-queue стратегією).
+
+**Internal decomposition:**
+
+```
+src/modules/stl-upload/
+├── routes/       <HTTP handler: POST /uploads, DTO + response mapping>
+├── services/      <upload-and-validate use case; форкає child process (ADR-0002),
+│                   викликає npm-бібліотеку валідації (ADR-0001) всередині child>
+├── repositories/  <read/write validated STL to local filesystem (ADR-0003)>
+└── module.ts      <self-wiring>
+```
+
+**C4 Container (L2):**
+
+```mermaid
+C4Container
+    title stl-upload — Containers
+
+    Person(user, "User")
+
+    Container_Boundary(boundary, "stl-upload service") {
+        Container(api, "Upload API", "Node.js/TypeScript", "Accepts STL upload, orchestrates validation, returns pass/fail")
+        Container(sandbox, "Validation child process", "Node.js child_process", "Sandboxed parsing + watertightness check (ADR-0001, ADR-0002)")
+        ContainerDb(fs, "Model storage", "Local filesystem", "Stores validated STL files by file-id (ADR-0003)")
+    }
+
+    System_Ext(quote_engine, "quote-engine", "Fetches valid model by file-id")
+
+    Rel(user, api, "Uploads STL, receives pass/fail", "HTTPS")
+    Rel(api, sandbox, "Forks + sends file, receives validation result", "child_process IPC")
+    Rel(api, fs, "Writes valid model", "fs write")
+    Rel(quote_engine, fs, "Reads valid model by file-id", "fs read")
+```
 
 ## 6. Runtime view
 
@@ -113,6 +146,7 @@ Each tactical decision in later sections should be traceable to one of these str
 | 0001 | Use an existing npm library for STL geometry validation | Accepted | §4 |
 | 0002 | Sandbox untrusted STL parsing in a child process with resource limits | Accepted | §4 |
 | 0003 | Store validated models on local server filesystem for v1 | Accepted | §4 |
+| 0004 | Use simple layered architecture (routes/services/repositories) for the first module | Accepted | §5 |
 
 ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
