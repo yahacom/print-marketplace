@@ -3,7 +3,7 @@ status: Confirmed
 owner: "Yakiv Vakoliuk"
 reviewers: []
 updated_at: "2026-09-06"
-feature_size: <XS|S|M|L|XL>     # set by sdlc:classify-size, not here
+feature_size: M
 stage: "01"
 ticket: "<ticket-id>"
 value_score:
@@ -163,7 +163,7 @@ Footnotes: research performed 2026-09-06 via web search for "Shapeways/Craftclou
 - [ ] How should duplicate uploads of the same file be handled (new file-id each time, or dedupe)? — owner: Yakiv Vakoliuk, due: before write-prd.
 - [ ] What mitigation is needed against malicious/crafted STL files (resource exhaustion, parser vulnerabilities) — see §10 top risk? — owner: Yakiv Vakoliuk, due: before write-prd.
 - [ ] Should multi-format support (OBJ/3MF/STEP) be added later to close the competitive gap in §6? — owner: Yakiv Vakoliuk, due: post-MVP-launch review.
-- [ ] Feasibility (§12) is unconfirmed (greenfield, no track record) — revisit once the feature actually ships once to have a real reference point for future features.
+- [ ] Feasibility (§12) is unconfirmed (greenfield, no track record) — revisit once stl-upload actually ships, to have a real reference point for future features. — owner: Yakiv Vakoliuk, due: after stl-upload ships
 
 ## Related
 - [`CONTEXT.md`](../../../CONTEXT.md) — domain glossary (watertight mesh).

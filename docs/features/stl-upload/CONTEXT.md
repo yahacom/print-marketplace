@@ -1,6 +1,6 @@
 ---
 status: Living
-updated_at: "2026-09-06"
+updated_at: "2026-09-08"
 ---
 
 # Domain Context
@@ -25,3 +25,4 @@ in CONTEXT.md keep only sections that have real content.
 - order — a record of the user's confirm/decline decision on a quote. NOT quote (a quote is a proposal awaiting a decision; an order is the decision itself).
 - quote — a price proposal (print time + material usage + price) produced by slicing a valid model. NOT order (an order already reflects the user's decision; a quote doesn't yet).
 - cost breakdown — the decomposition of a quote's final price into its components. NOT quote (a quote is the whole proposal; the breakdown is just the price split inside it).
+- user — a person who uploads a model for printing. NOT vendor (the party that fulfills printing — vendor-facing tooling is out of scope for MVP per idea-brief §5).
