@@ -51,7 +51,30 @@ ticket: "<TBD>"
 
 ## 3. Context and scope
 
-<!-- pending §3 draft -->
+<!-- brownfield: N/A — greenfield repo -->
+
+Користувач без облікового запису завантажує STL-файл через веб. `stl-upload` синхронно перевіряє формат і watertightness, зберігає валідну модель з unguessable file-id (AC-04) і віддає цей file-id вниз по флоу для `quote-engine` — наступного кроку MVP-флоу (PRD §1, AC-05). Немає third-party інтеграцій: весь untrusted-parsing відбувається локально в sandboxed процесі (PRD §6.1), без зовнішніх сервісів чи API.
+
+**External systems (in / out):**
+
+| Actor or system | Type | Interaction |
+|---|---|---|
+| User | Person | Завантажує STL, отримує негайний pass/fail (US-01…US-04) |
+| quote-engine | System (internal, окрема фіча MVP) | Запитує валідну модель за file-id, без повторної валідації (AC-05) |
+
+**C4 Context (L1):**
+
+```mermaid
+C4Context
+    title stl-upload — System Context
+
+    Person(user, "User", "Uploads an STL model to get it printed")
+    System(stl_upload, "stl-upload", "Validates STL format + watertightness, stores valid models, issues an unguessable file-id")
+    System_Ext(quote_engine, "quote-engine", "Consumes the stored model by file-id to produce a print quote (next MVP step)")
+
+    Rel(user, stl_upload, "Uploads STL, receives pass/fail", "HTTPS")
+    Rel(quote_engine, stl_upload, "Fetches valid model by file-id", "internal call")
+```
 
 ## 4. Solution strategy
 
