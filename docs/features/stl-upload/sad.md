@@ -34,7 +34,20 @@ ticket: "<TBD>"
 
 ## 2. Constraints
 
-<!-- N/A: filled after §4/§5 decisions to avoid re-litigating pinned stack before strategy is set -->
+**Technical.**
+- Node.js + TypeScript — the only stack decision locked so far (`docs/overview.md`).
+- No framework, datastore, or hosting choice made yet — open strategic decisions, resolved in §4/§5, not pre-existing constraints.
+
+**Organisational.**
+- Deadline: 2 тижні (hard, idea-brief §13 two-week solo-delivery constraint for Approach A).
+- Team: solo maintainer, no on-call (PRD §6 Availability rationale).
+
+**Conventions.**
+- `CLAUDE.md` currently has no code conventions (repo is pre-code) — no pre-existing naming/error-handling pattern to inherit.
+
+**Regulatory / external.**
+- None new — PRD §6.1 classifies uploaded files as internal data, no new PII collected.
+- Security review is procedurally required before ship (PRD §6.1) — process gate, not a regulatory constraint.
 
 ## 3. Context and scope
 
