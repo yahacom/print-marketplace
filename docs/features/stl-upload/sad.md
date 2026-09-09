@@ -259,4 +259,14 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 ## 12. Glossary
 
-<!-- pending §12 draft -->
+| Term | Meaning |
+|---|---|
+| STL file | Формат файлу, що кодує поверхню моделі як набір трикутників. NOT model (модель — абстрактний 3D-об'єкт; файл — конкретне кодування) — CONTEXT.md. |
+| Watertight mesh | Поверхня 3D-моделі без дірок (замкнута/manifold геометрія), потрібна слайсеру. NOT valid file format — CONTEXT.md. |
+| Model | 3D-об'єкт, який користувач хоче надрукувати. NOT STL file — CONTEXT.md. |
+| Valid model | Модель, що пройшла перевірки stl-upload і придатна для слайсера. NOT watertight mesh (watertightness — лише один з критеріїв) — CONTEXT.md. |
+| User | Особа, яка завантажує модель для друку. NOT vendor (vendor-facing tooling — поза MVP) — CONTEXT.md. |
+| File-id | Системно згенерований UUID v4, єдиний механізм доступу до моделі в v1 (ADR-0005). Не в CONTEXT.md — флаг для `sdlc:fix-term` follow-up. |
+
+<!-- "File-id" surfaced during this pass and isn't yet in CONTEXT.md — flag for sdlc:fix-term follow-up. -->
+
