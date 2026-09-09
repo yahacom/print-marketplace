@@ -127,7 +127,59 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- pending §6 draft -->
+**Critical flow 1: Happy path — valid STL upload (US-01, AC-01)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Upload API
+    participant Sandbox as Validation child process
+    participant FS as Model storage
+    User->>API: Uploads STL file
+    API->>Sandbox: Forks child process, sends file
+    Sandbox-->>API: Parsed OK, watertight
+    API->>FS: Writes model as <file-id>.stl
+    FS-->>API: ok
+    API-->>User: 201 — model ready for quote (file-id)
+```
+
+**Critical flow 2: Invalid format (US-02, AC-02)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Upload API
+    participant Sandbox as Validation child process
+    User->>API: Uploads unreadable/corrupted/truncated file
+    API->>Sandbox: Forks child process, sends file
+    Sandbox-->>API: Parse error — not a valid STL
+    API-->>User: 400 — plain-language "could not read this as an STL"
+```
+
+**Critical flow 3: Non-watertight geometry (US-03, AC-03)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Upload API
+    participant Sandbox as Validation child process
+    User->>API: Uploads well-formed STL with holes/self-intersections
+    API->>Sandbox: Forks child process, sends file
+    Sandbox-->>API: Parsed OK, watertight check FAILED
+    API-->>User: 422 — plain-language "mesh must be watertight before printing"
+```
+
+**Critical flow 4: quote-engine fetches a valid model (US-05, AC-05)**
+
+```mermaid
+sequenceDiagram
+    participant quote-engine
+    participant FS as Model storage
+    quote-engine->>FS: Reads model by file-id
+    FS-->>quote-engine: STL file (already validated, no re-check needed)
+```
+
+<!-- Sandbox timeout/crash — dropped as a standalone diagram; documented as a §8 crosscutting concern (timeout + resource-limit handling) instead of a fifth sequence diagram. -->
 
 ## 7. Deployment view
 
