@@ -113,26 +113,26 @@ C4Container
 
     Container_Boundary(boundary, "stl-upload service") {
         Container(api, "Upload API", "Node.js/TypeScript", "Accepts STL upload, orchestrates validation, returns pass/fail")
-        Container(sandbox, "Validation child process", "Node.js child_process", "Sandboxed parsing + watertightness check (ADR-0001, ADR-0002)")
         ContainerDb(fs, "Model storage", "Local filesystem", "Stores validated STL files by file-id (ADR-0003)")
+        Container(sandbox, "Validation child process", "Node.js child_process", "Sandboxed parsing + watertightness check (ADR-0001, ADR-0002)")
     }
 
     System_Ext(quote_engine, "quote-engine", "Fetches valid model by file-id")
 
-    Rel_D(user, api, "Uploads STL, receives pass/fail", "HTTPS")
-    Rel_R(api, sandbox, "Forks + sends file, receives validation result", "child_process IPC")
-    Rel_D(api, fs, "Writes valid model", "fs write")
-    Rel_L(quote_engine, fs, "Reads valid model by file-id", "fs read")
+    Rel(user, api, "Uploads STL, receives pass/fail", "HTTPS")
+    Rel(api, fs, "Writes valid model", "fs write")
+    Rel(api, sandbox, "Forks + sends file, receives validation result", "child_process IPC")
+    Rel(quote_engine, fs, "Reads valid model by file-id", "fs read")
 
     UpdateElementStyle(user, $bgColor="#0b3d91", $fontColor="#ffffff", $borderColor="#5aa9ff")
     UpdateElementStyle(api, $bgColor="#1f6feb", $fontColor="#ffffff", $borderColor="#79c0ff")
     UpdateElementStyle(sandbox, $bgColor="#8957e5", $fontColor="#ffffff", $borderColor="#d2a8ff")
     UpdateElementStyle(fs, $bgColor="#1a7f37", $fontColor="#ffffff", $borderColor="#7ee787")
     UpdateElementStyle(quote_engine, $bgColor="#57606a", $fontColor="#ffffff", $borderColor="#c9d1d9")
-    UpdateRelStyle(user, api, $textColor="#e6edf3", $lineColor="#e6edf3", $offsetX="10")
-    UpdateRelStyle(api, sandbox, $textColor="#e6edf3", $lineColor="#e6edf3", $offsetY="-30")
-    UpdateRelStyle(api, fs, $textColor="#e6edf3", $lineColor="#e6edf3", $offsetX="30", $offsetY="15")
-    UpdateRelStyle(quote_engine, fs, $textColor="#e6edf3", $lineColor="#e6edf3", $offsetY="40")
+    UpdateRelStyle(user, api, $textColor="#e6edf3", $lineColor="#e6edf3")
+    UpdateRelStyle(api, fs, $textColor="#e6edf3", $lineColor="#e6edf3")
+    UpdateRelStyle(api, sandbox, $textColor="#e6edf3", $lineColor="#e6edf3")
+    UpdateRelStyle(quote_engine, fs, $textColor="#e6edf3", $lineColor="#e6edf3")
 ```
 
 ## 6. Runtime view
