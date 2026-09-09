@@ -78,7 +78,15 @@ C4Context
 
 ## 4. Solution strategy
 
-<!-- pending §4 draft -->
+**Inherited from idea-brief §13 (Approach A, locked — not re-litigated here):** synchronous, single-pass, local validate-then-store pipeline; no auto-repair; no queue/async processing.
+
+**Top-3 strategic choices (the seeds for ADRs):**
+
+1. **Готова npm-бібліотека для геометричної валідації (не власний алгоритм, не shared PrusaSlicer CLI)** — обираємо існуючу open-source бібліотеку для парсингу STL і перевірки watertightness замість написання власного edge-pairing алгоритму або перевикористання PrusaSlicer CLI з quote-engine. Тримає stl-upload незалежним модулем від quote-engine (§1 QG-1 точність, §2 деталь: два-тижневий дедлайн не дозволяє писати й верифікувати власну геометричну математику). → ADR-0001.
+2. **child_process з лімітами для sandboxed-парсингу** — недовірений парсинг (npm-бібліотека виконує нативний код на байтах користувача) запускається в окремому Node-процесі через `child_process.fork`, з timeout і memory cap, без мережі. Задовольняє §1 QG-2 безпеку і PRD §6.1 abuse case #1. → ADR-0002.
+3. **Локальна файлова система для зберігання валідних моделей (v1)** — валідні STL зберігаються на диску сервера за `<file-id>.stl`; горизонтальне масштабування відкладене (accepted debt у §11). Узгоджено з §2 двотижневим дедлайном і §7 single-instance топологією v1. → ADR-0003.
+
+Each tactical decision in later sections should be traceable to one of these strategic seeds.
 
 ## 5. Building block view
 
@@ -102,6 +110,9 @@ C4Context
 
 | # | Title | Status | Section |
 |---|---|---|---|
+| 0001 | Use an existing npm library for STL geometry validation | Accepted | §4 |
+| 0002 | Sandbox untrusted STL parsing in a child process with resource limits | Accepted | §4 |
+| 0003 | Store validated models on local server filesystem for v1 | Accepted | §4 |
 
 ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
