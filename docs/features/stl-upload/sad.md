@@ -228,7 +228,20 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
-<!-- pending §10 draft -->
+**QG-1. Точність валідації (Accuracy)**
+- **When:** STL-файл пройшов або не пройшов watertight-перевірку (ADR-0001 npm-бібліотека).
+- **Then:** результат валідатора збігається з реальним слайсером (PrusaSlicer CLI) у ≥99% випадків — validator flags ≥99% of meshes that later fail in the real slicer (PRD §6 Accuracy, дослівно).
+- **How verify:** manual QA sample against PrusaSlicer CLI (PRD §6 measurement column; крос-референс з quote-engine/stl-parse-feature-plan.md).
+
+**QG-2. Безпека обробки недовірених файлів (Security)**
+- **When:** зловмисний/пошкоджений STL потрапляє у sandboxed child process (ADR-0002).
+- **Then:** exploit або crash парсера не впливає на host-процес чи інші запити; child process обмежений по пам'яті/часу, без мережевого доступу (PRD §6.1 abuse case #1-2, дослівно).
+- **How verify:** security review — Required (PRD §6.1) + тестовий набір з malformed/oversized/zip-bomb-style STL-файлів проти sandbox boundary.
+
+**QG-3. Продуктивність синхронної перевірки (Speed)**
+- **When:** користувач завантажує STL-файл до max file size (≤50 MB, PRD §6).
+- **Then:** p95 latency upload-validate запиту ≤10000 ms (PRD §6 Latency, дослівно); throughput ≥5 req/s per instance (PRD §6, дослівно).
+- **How verify:** k6 smoke test in CI (PRD §6 measurement column).
 
 ## 11. Risks and technical debt
 
