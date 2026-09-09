@@ -245,7 +245,17 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 ## 11. Risks and technical debt
 
-<!-- pending §11 draft -->
+<!-- N/A: greenfield — no brownfield gotchas from Explore report -->
+
+| Risk / debt | Severity | Mitigation | Owner |
+|---|---|---|---|
+| Точність обраної npm-бібліотеки валідації невідома до верифікації (ADR-0001 Negative) — може не досягти PRD §6 ≥99% збігу зі слайсером | Medium | QA sample проти PrusaSlicer CLI перед stage 15 (test-plan); зафіксовано як measurement column у PRD §6 | Yakiv Vakoliuk |
+| Горизонтальне масштабування заблоковане локальним диском (ADR-0003 Negative) — кілька інстансів не бачать одні й ті ж файли | Medium | Мігрувати на S3-сумісне сховище, якщо throughput перевищить одноінстансний ліміт (§7 Scaling thresholds) | Yakiv Vakoliuk |
+| Feasibility фічі (greenfield, без track record) непідтверджена — idea-brief §12 | Low | Переглянути після першого реального шипу фічі (PRD §8, owner: Yakiv Vakoliuk, due: after stl-upload ships) | Yakiv Vakoliuk |
+
+**Accepted debt (acceptable in v1, plan to fix later):**
+- Простий шаровий стиль (ADR-0004) може вимагати рефакторингу у гексагональний, якщо `services/` виросте без чіткої межі між sandbox-викликом і бізнес-правилами — прийнятно для першого модуля за 2-тижневий дедлайн.
+- UUID v4 (ADR-0005) не сортується за часом створення — якщо знадобиться листинг за recency, треба окрема колонка `created_at`, не сам id.
 
 ## 12. Glossary
 
