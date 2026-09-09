@@ -183,7 +183,19 @@ sequenceDiagram
 
 ## 7. Deployment view
 
-<!-- pending §7 draft -->
+stl-upload запускається як один довгоживучий Node/TS-процес (systemd/pm2) на одній VM з локальним диском — узгоджено з ADR-0003 (файли на диску, недоступні між інстансами) і §2 двотижневим дедлайном (без оркестрації контейнерів). Не окрема ADR-гідна тема — це прямий наслідок уже прийнятого ADR-0003, не окреме рішення з альтернативами.
+
+**Monitoring:**
+- Метрика latency: тривалість upload-validate запиту (PRD §6 latency p95 ≤10000 ms).
+- Alert: сплеск 5xx/timeout на sandbox child process (ADR-0002) — сигнал, що ліміти ресурсів занизькі або є атака.
+- Tracing: базовий request-id у логах (structured logging — узгодиться в §8).
+
+**Scaling thresholds:**
+- NFR throughput ≥5 req/s на інстанс (PRD §6) — досяжно в межах одного інстансу для MVP-навантаження.
+- Горизонтальне масштабування (кілька інстансів) вимагає спершу міграції з ADR-0003 (локальний диск → object storage) — задокументовано як accepted debt у §11.
+
+<!-- N/A not applicable: this is the feature's first deployment unit, not a reuse of an existing one -->
+
 
 ## 8. Crosscutting concepts
 
