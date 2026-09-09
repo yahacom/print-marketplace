@@ -199,7 +199,18 @@ stl-upload запускається як один довгоживучий Node/
 
 ## 8. Crosscutting concepts
 
-<!-- pending §8 draft -->
+<!-- Greenfield: CLAUDE.md has no pre-existing conventions to inherit — these are fresh decisions, not overrides. -->
+
+| Concept | Convention | Where defined |
+|---|---|---|
+| Logging | Structured JSON logs, fields include `request_id`; no PII/file-content logged | here |
+| Authentication | N/A — MVP has no accounts (PRD §3 Non-goals) | PRD §3 |
+| Error handling | HTTP 400 (invalid format, AC-02) / 422 (non-watertight, AC-03), plain-language message, no mesh-repair jargon (PRD §2) | here |
+| ID strategy | UUID v4 for file-id — unguessable, sole access control (ADR-0005) | ADR-0005 |
+| Internationalisation | N/A, English only | — |
+| Observability | Latency + sandbox-crash/timeout metrics (§7 Monitoring) | §7 |
+| Rate limiting | 30 uploads/min per IP (PRD §6.1 abuse case #4) | PRD §6.1 |
+| Sandbox resource limits | child_process timeout + memory cap, budgeted within p95 ≤10000ms (PRD §6); no network access (ADR-0002) | ADR-0002 |
 
 ## 9. Architecture decisions
 
@@ -211,6 +222,7 @@ stl-upload запускається як один довгоживучий Node/
 | 0002 | Sandbox untrusted STL parsing in a child process with resource limits | Accepted | §4 |
 | 0003 | Store validated models on local server filesystem for v1 | Accepted | §4 |
 | 0004 | Use simple layered architecture (routes/services/repositories) for the first module | Accepted | §5 |
+| 0005 | Use UUID v4 as the unguessable file-id | Accepted | §8 |
 
 ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
