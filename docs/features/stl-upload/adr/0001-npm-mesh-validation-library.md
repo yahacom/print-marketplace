@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: Superseded
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-09"
+updated_at: "2026-09-10"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,13 @@ ticket: "<TBD>"
 
 # 0001 — Use an existing npm library for STL geometry validation
 
-- **Status:** Accepted
+- **Status:** Superseded by [[0006-descope-mesh-validation-to-quote-engine]]
 - **Date:** 2026-09-09
 - **Deciders:** Yakiv Vakoliuk (Architect) during the sad.md §4 Socratic walk
+
+## Superseded (2026-09-10)
+
+Mesh/geometry validation (watertightness) has been descoped out of stl-upload entirely and moved to quote-engine, which already loads the mesh into PrusaSlicer CLI to slice it (see [[0006-descope-mesh-validation-to-quote-engine]]). Running a second, independent geometry-parsing implementation (this ADR's npm library) inside stl-upload duplicated that work and risked disagreeing with the slicer's own judgment — a risk this ADR's own Negative consequences already flagged. No mesh-validation library is needed in stl-upload anymore. The rest of this record is kept for history.
 
 ## Context
 

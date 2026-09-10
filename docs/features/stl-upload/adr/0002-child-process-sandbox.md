@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: Superseded
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-09"
+updated_at: "2026-09-10"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,13 @@ ticket: "<TBD>"
 
 # 0002 — Sandbox untrusted STL parsing in a child process with resource limits
 
-- **Status:** Accepted
+- **Status:** Superseded by [[0006-descope-mesh-validation-to-quote-engine]]
 - **Date:** 2026-09-09
 - **Deciders:** Yakiv Vakoliuk (Architect) during the sad.md §4 Socratic walk
+
+## Superseded (2026-09-10)
+
+With mesh/geometry validation moved out of stl-upload (see [[0006-descope-mesh-validation-to-quote-engine]]), no third-party library parses untrusted file content in this module anymore — the remaining format check is a content-type/extension + byte-length check, not code execution over attacker-controlled bytes. There is nothing left in stl-upload that needs sandboxing. Sandboxing responsibility, if any, moves to quote-engine's own future architecture pass. The rest of this record is kept for history.
 
 ## Context
 

@@ -2,7 +2,7 @@
 status: Draft
 owner: "Yakiv Vakoliuk"
 reviewers: ["Tech Lead", "Security Lead"]
-updated_at: "2026-09-09"
+updated_at: "2026-09-10"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -16,13 +16,13 @@ ticket: "<TBD>"
 
 ## 1. Introduction and goals
 
-**Intent.** stl-upload — це точка входу всього MVP-флоу маркетплейсу 3D-друку (upload → quote → confirm/decline). Користувач без досвіду в 3D-моделюванні завантажує STL-файл; система синхронно перевіряє, що файл читається і має watertight-геометрію (без дірок/самоперетинів), і або зберігає модель з унікальним ідентифікатором, готовим для quote-engine, або одразу пояснює зрозумілою мовою, чому файл відхилено (PRD §2 Goals, §1 Context).
+**Intent.** stl-upload — це точка входу всього MVP-флоу маркетплейсу 3D-друку (upload → quote → confirm/decline). Користувач без досвіду в 3D-моделюванні завантажує STL-файл; система синхронно перевіряє заявлений формат (content-type/розширення) і розмір, і або зберігає модель з унікальним ідентифікатором, готовим для quote-engine, або одразу пояснює зрозумілою мовою, чому файл відхилено (PRD §2 Goals, §1 Context). Перевірка геометрії (watertightness) винесена з цього модуля в quote-engine, що вже завантажує mesh у слайсер (ADR-0006).
 
 **Top-3 quality goals (1-liners; full scenarios in §10):**
 
-1. Точність валідації watertightness — валідатор має погоджуватись зі справжнім слайсером у ≥99% випадків (PRD §6 Accuracy), інакше ламається довіра до негайного pass/fail.
-2. Безпека обробки недовірених бінарних файлів — sandboxed-парсинг, головний ризик idea-brief §10 і PRD §6.1 abuse case #1.
-3. Продуктивність синхронної перевірки — p95 ≤10000 ms (PRD §6 Latency), щоб "негайна відповідь" залишалась негайною.
+1. Надійність перевірки формату/розміру — проста, детермінована перевірка content-type/розширення + байтового розміру, без хибних відхилень валідних STL-файлів.
+2. Безпечна обробка довільних завантажених байтів — без парсингу вмісту немає untrusted-parsing boundary (ADR-0006), але лишаються rate limiting і file-size cap як периметр захисту.
+3. Продуктивність синхронної перевірки — p95 ≤10000 ms (PRD §6 Latency), щоб "негайна відповідь" залишалась негайною; без sandbox-форку цей бюджет досягається з великим запасом.
 
 **Stakeholders.**
 
@@ -30,7 +30,7 @@ ticket: "<TBD>"
 |---|---|---|
 | User (uploader) | Отримує негайний yes/no без async-стану; довіряє, що модель приватна (US-01…US-05) | No |
 | Tech Lead | Затверджує SAD перед stage 06 | Yes |
-| Security Lead | Затверджує untrusted-parsing boundary (PRD §6.1 — security review Required) | Yes |
+| Security Lead | Підтверджує обсяг security review — untrusted-parsing boundary більше не існує (ADR-0006); лишається rate limiting + зберігання довільних байтів (PRD §6.1) | Yes |
 
 ## 2. Constraints
 
@@ -47,13 +47,13 @@ ticket: "<TBD>"
 
 **Regulatory / external.**
 - None new — PRD §6.1 classifies uploaded files as internal data, no new PII collected.
-- Security review is procedurally required before ship (PRD §6.1) — process gate, not a regulatory constraint.
+- Security review scope is TBD, pending Security Lead confirmation (PRD §6.1) — the untrusted-parsing boundary that originally required it is gone (ADR-0006); process gate, not a regulatory constraint.
 
 ## 3. Context and scope
 
 <!-- brownfield: N/A — greenfield repo -->
 
-Користувач без облікового запису завантажує STL-файл через веб. `stl-upload` синхронно перевіряє формат і watertightness, зберігає валідну модель з unguessable file-id (AC-04) і віддає цей file-id вниз по флоу для `quote-engine` — наступного кроку MVP-флоу (PRD §1, AC-05). Немає third-party інтеграцій: весь untrusted-parsing відбувається локально в sandboxed процесі (PRD §6.1), без зовнішніх сервісів чи API.
+Користувач без облікового запису завантажує STL-файл через веб. `stl-upload` синхронно перевіряє заявлений формат і розмір, зберігає модель з unguessable file-id (AC-04) і віддає цей file-id вниз по флоу для `quote-engine` — наступного кроку MVP-флоу (PRD §1, AC-05). Немає third-party інтеграцій і немає untrusted-parsing boundary (ADR-0006) — перевірка геометрії (watertightness) відбувається пізніше, всередині `quote-engine`, коли той завантажує mesh у слайсер.
 
 **External systems (in / out):**
 
@@ -69,7 +69,7 @@ C4Context
     title stl-upload — System Context
 
     Person(user, "User", "Uploads an STL model to get it printed")
-    System(stl_upload, "stl-upload", "Validates STL format + watertightness, stores valid models, issues an unguessable file-id")
+    System(stl_upload, "stl-upload", "Validates declared STL format + size, stores models, issues an unguessable file-id")
     System_Ext(quote_engine, "quote-engine", "Consumes the stored model by file-id to produce a print quote (next MVP step)")
 
     Rel(user, stl_upload, "Uploads STL, receives pass/fail", "HTTPS")
@@ -80,25 +80,25 @@ C4Context
 
 **Inherited from idea-brief §13 (Approach A, locked — not re-litigated here):** synchronous, single-pass, local validate-then-store pipeline; no auto-repair; no queue/async processing.
 
-**Top-3 strategic choices (the seeds for ADRs):**
+**Descope note (ADR-0006):** геометрична валідація (watertightness) і пов'язаний sandboxed-парсинг (колишні стратегічні вибори ADR-0001, ADR-0002) винесені з stl-upload у quote-engine, який і так завантажує mesh у PrusaSlicer CLI для слайсингу — дублювати цю перевірку окремою npm-бібліотекою всередині stl-upload не було сенсу для MVP/PoC-обсягу, і це прибирає untrusted-parsing boundary, що вимагав sandbox. ADR-0001 і ADR-0002 позначені Superseded.
 
-1. **Готова npm-бібліотека для геометричної валідації (не власний алгоритм, не shared PrusaSlicer CLI)** — обираємо існуючу open-source бібліотеку для парсингу STL і перевірки watertightness замість написання власного edge-pairing алгоритму або перевикористання PrusaSlicer CLI з quote-engine. Тримає stl-upload незалежним модулем від quote-engine (§1 QG-1 точність, §2 деталь: два-тижневий дедлайн не дозволяє писати й верифікувати власну геометричну математику). → ADR-0001.
-2. **child_process з лімітами для sandboxed-парсингу** — недовірений парсинг (npm-бібліотека виконує нативний код на байтах користувача) запускається в окремому Node-процесі через `child_process.fork`, з timeout і memory cap, без мережі. Задовольняє §1 QG-2 безпеку і PRD §6.1 abuse case #1. → ADR-0002.
-3. **Локальна файлова система для зберігання валідних моделей (v1)** — валідні STL зберігаються на диску сервера за `<file-id>.stl`; горизонтальне масштабування відкладене (accepted debt у §11). Узгоджено з §2 двотижневим дедлайном і §7 single-instance топологією v1. → ADR-0003.
+**Strategic choice (the seed for the remaining ADR):**
 
-Each tactical decision in later sections should be traceable to one of these strategic seeds.
+1. **Локальна файлова система для зберігання моделей (v1)** — STL-файли, що пройшли перевірку формату/розміру, зберігаються на диску сервера за `<file-id>.stl`; горизонтальне масштабування відкладене (accepted debt у §11). Узгоджено з §2 двотижневим дедлайном і §7 single-instance топологією v1. → ADR-0003.
+
+Each tactical decision in later sections should be traceable to this strategic seed (or to ADR-0006's descope decision).
 
 ## 5. Building block view
 
-Простий шаровий стиль (routes/services/repositories) — перша фіча в грінфілд-репозиторії, вибрано замість гексагонального через 2-тижневий solo-дедлайн (§2): менше файлів/інтерфейсів на старті. → ADR-0004. Фізична межа — один Node/TS-сервіс: недовірений парсинг виконується як forked child process (ADR-0002) *всередині* цього ж сервісу, не окремим воркер-деплойментом (узгоджено з §4 sync/no-queue стратегією).
+Простий шаровий стиль (routes/services/repositories) — перша фіча в грінфілд-репозиторії, вибрано замість гексагонального через 2-тижневий solo-дедлайн (§2): менше файлів/інтерфейсів на старті. → ADR-0004. Фізична межа — один Node/TS-сервіс; окремого sandbox-процесу більше немає (ADR-0006) — `services/` виконує перевірку формату/розміру напряму, без форку child process.
 
 **Internal decomposition:**
 
 ```
 src/modules/stl-upload/
 ├── routes/       <HTTP handler: POST /uploads, DTO + response mapping>
-├── services/      <upload-and-validate use case; форкає child process (ADR-0002),
-│                   викликає npm-бібліотеку валідації (ADR-0001) всередині child>
+├── services/      <upload-and-validate use case: content-type/extension + size check,
+│                   then hands validated bytes to the repository>
 ├── repositories/  <read/write validated STL to local filesystem (ADR-0003)>
 └── module.ts      <self-wiring>
 ```
@@ -112,26 +112,22 @@ C4Container
     Person(user, "User")
 
     Container_Boundary(boundary, "stl-upload service") {
-        Container(api, "Upload API", "Node.js/TypeScript", "Accepts STL upload, orchestrates validation, returns pass/fail")
-        ContainerDb(fs, "Model storage", "Local filesystem", "Stores validated STL files by file-id (ADR-0003)")
-        Container(sandbox, "Validation child process", "Node.js child_process", "Sandboxed parsing + watertightness check (ADR-0001, ADR-0002)")
+        Container(api, "Upload API", "Node.js/TypeScript", "Accepts STL upload, checks format + size, returns pass/fail")
+        ContainerDb(fs, "Model storage", "Local filesystem", "Stores STL files by file-id (ADR-0003)")
     }
 
-    System_Ext(quote_engine, "quote-engine", "Fetches valid model by file-id")
+    System_Ext(quote_engine, "quote-engine", "Fetches model by file-id; owns geometry validation (ADR-0006)")
 
     Rel(user, api, "Uploads STL, receives pass/fail", "HTTPS")
-    Rel(api, fs, "Writes valid model", "fs write")
-    Rel(api, sandbox, "Forks + sends file, receives validation result", "child_process IPC")
-    Rel(quote_engine, fs, "Reads valid model by file-id", "fs read")
+    Rel(api, fs, "Writes model", "fs write")
+    Rel(quote_engine, fs, "Reads model by file-id", "fs read")
 
     UpdateElementStyle(user, $bgColor="#0b3d91", $fontColor="#ffffff", $borderColor="#5aa9ff")
     UpdateElementStyle(api, $bgColor="#1f6feb", $fontColor="#ffffff", $borderColor="#79c0ff")
-    UpdateElementStyle(sandbox, $bgColor="#8957e5", $fontColor="#ffffff", $borderColor="#d2a8ff")
     UpdateElementStyle(fs, $bgColor="#1a7f37", $fontColor="#ffffff", $borderColor="#7ee787")
     UpdateElementStyle(quote_engine, $bgColor="#57606a", $fontColor="#ffffff", $borderColor="#c9d1d9")
     UpdateRelStyle(user, api, $textColor="#e6edf3", $lineColor="#e6edf3")
     UpdateRelStyle(api, fs, $textColor="#e6edf3", $lineColor="#e6edf3")
-    UpdateRelStyle(api, sandbox, $textColor="#e6edf3", $lineColor="#e6edf3")
     UpdateRelStyle(quote_engine, fs, $textColor="#e6edf3", $lineColor="#e6edf3")
 ```
 
@@ -143,11 +139,9 @@ C4Container
 sequenceDiagram
     actor User
     participant API as Upload API
-    participant Sandbox as Validation child process
     participant FS as Model storage
     User->>API: Uploads STL file
-    API->>Sandbox: Forks child process, sends file
-    Sandbox-->>API: Parsed OK, watertight
+    API->>API: Checks declared format (content-type/extension) + size
     API->>FS: Writes model as <file-id>.stl
     FS-->>API: ok
     API-->>User: 201 — model ready for quote (file-id)
@@ -159,27 +153,14 @@ sequenceDiagram
 sequenceDiagram
     actor User
     participant API as Upload API
-    participant Sandbox as Validation child process
-    User->>API: Uploads unreadable/corrupted/truncated file
-    API->>Sandbox: Forks child process, sends file
-    Sandbox-->>API: Parse error — not a valid STL
-    API-->>User: 400 — plain-language "could not read this as an STL"
+    User->>API: Uploads a file with wrong content-type/extension, or empty
+    API->>API: Checks declared format + size
+    API-->>User: 400 — plain-language "could not accept this as an STL"
 ```
 
-**Critical flow 3: Non-watertight geometry (US-03, AC-03)**
+<!-- Colишній "Critical flow 3: Non-watertight geometry" видалено (ADR-0006) — watertightness більше не перевіряється в stl-upload; еквівалентний потік тепер належить quote-engine. -->
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant API as Upload API
-    participant Sandbox as Validation child process
-    User->>API: Uploads well-formed STL with holes/self-intersections
-    API->>Sandbox: Forks child process, sends file
-    Sandbox-->>API: Parsed OK, watertight check FAILED
-    API-->>User: 422 — plain-language "mesh must be watertight before printing"
-```
-
-**Critical flow 4: quote-engine fetches a valid model (US-05, AC-05)**
+**Critical flow 3: quote-engine fetches a model (US-05, AC-05)**
 
 ```mermaid
 sequenceDiagram
@@ -189,15 +170,13 @@ sequenceDiagram
     FS-->>quote-engine: STL file (already validated, no re-check needed)
 ```
 
-<!-- Sandbox timeout/crash — dropped as a standalone diagram; documented as a §8 crosscutting concern (timeout + resource-limit handling) instead of a fifth sequence diagram. -->
-
 ## 7. Deployment view
 
 stl-upload запускається як один довгоживучий Node/TS-процес (systemd/pm2) на одній VM з локальним диском — узгоджено з ADR-0003 (файли на диску, недоступні між інстансами) і §2 двотижневим дедлайном (без оркестрації контейнерів). Не окрема ADR-гідна тема — це прямий наслідок уже прийнятого ADR-0003, не окреме рішення з альтернативами.
 
 **Monitoring:**
 - Метрика latency: тривалість upload-validate запиту (PRD §6 latency p95 ≤10000 ms).
-- Alert: сплеск 5xx/timeout на sandbox child process (ADR-0002) — сигнал, що ліміти ресурсів занизькі або є атака.
+- Alert: сплеск 5xx на upload endpoint — сигнал деградації чи атаки (rate limiting нижче — перша лінія захисту).
 - Tracing: базовий request-id у логах (structured logging — узгодиться в §8).
 
 **Scaling thresholds:**
@@ -217,12 +196,11 @@ stl-upload запускається як один довгоживучий Node/
 |---|---|---|
 | Logging | Structured JSON logs, fields include `request_id`; no PII/file-content logged | here |
 | Authentication | N/A — MVP has no accounts (PRD §3 Non-goals) | PRD §3 |
-| Error handling | HTTP 400 (invalid format, AC-02) / 422 (non-watertight, AC-03), plain-language message, no mesh-repair jargon (PRD §2) | here |
+| Error handling | HTTP 400 (invalid format/oversized, AC-02), plain-language message, no mesh-repair jargon (PRD §2) | here |
 | ID strategy | UUID v4 for file-id — unguessable, sole access control (ADR-0005) | ADR-0005 |
 | Internationalisation | N/A, English only | — |
-| Observability | Latency + sandbox-crash/timeout metrics (§7 Monitoring) | §7 |
+| Observability | Latency metrics (§7 Monitoring) | §7 |
 | Rate limiting | 30 uploads/min per IP (PRD §6.1 abuse case #4) | PRD §6.1 |
-| Sandbox resource limits | child_process timeout + memory cap, budgeted within p95 ≤10000ms (PRD §6); no network access (ADR-0002) | ADR-0002 |
 
 ## 9. Architecture decisions
 
@@ -230,29 +208,25 @@ stl-upload запускається як один довгоживучий Node/
 
 | # | Title | Status | Section |
 |---|---|---|---|
-| 0001 | Use an existing npm library for STL geometry validation | Accepted | §4 |
-| 0002 | Sandbox untrusted STL parsing in a child process with resource limits | Accepted | §4 |
+| 0001 | Use an existing npm library for STL geometry validation | Superseded by 0006 | §4 |
+| 0002 | Sandbox untrusted STL parsing in a child process with resource limits | Superseded by 0006 | §4 |
 | 0003 | Store validated models on local server filesystem for v1 | Accepted | §4 |
 | 0004 | Use simple layered architecture (routes/services/repositories) for the first module | Accepted | §5 |
 | 0005 | Use UUID v4 as the unguessable file-id | Accepted | §8 |
+| 0006 | Descope mesh/geometry validation to quote-engine | Accepted | §4 |
 
 ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
-**QG-1. Точність валідації (Accuracy)**
-- **When:** STL-файл пройшов або не пройшов watertight-перевірку (ADR-0001 npm-бібліотека).
-- **Then:** результат валідатора збігається з реальним слайсером (PrusaSlicer CLI) у ≥99% випадків — validator flags ≥99% of meshes that later fail in the real slicer (PRD §6 Accuracy, дослівно).
-- **How verify:** manual QA sample against PrusaSlicer CLI (PRD §6 measurement column; крос-референс з quote-engine/stl-parse-feature-plan.md).
+**QG-1. Безпечна обробка довільних завантажених байтів (Security)**
+- **When:** користувач завантажує STL-файл через `POST /api/v1/uploads`.
+- **Then:** немає untrusted-parsing boundary для експлуатації (ADR-0006 — перевіряється лише content-type/розширення + байтовий розмір, вміст файлу не парситься); залишковий захист — file-size cap (PRD §6) і rate limit (PRD §6.1 abuse case #4), а не sandbox.
+- **How verify:** security review scope, звужений після ADR-0006 (PRD §6.1) — фінальне рішення про обсяг перевірки за Security Lead.
 
-**QG-2. Безпека обробки недовірених файлів (Security)**
-- **When:** зловмисний/пошкоджений STL потрапляє у sandboxed child process (ADR-0002).
-- **Then:** exploit або crash парсера не впливає на host-процес чи інші запити; child process обмежений по пам'яті/часу, без мережевого доступу (PRD §6.1 abuse case #1, дослівно).
-- **How verify:** security review — Required (PRD §6.1) + тестовий набір з malformed/oversized/zip-bomb-style STL-файлів проти sandbox boundary.
-
-**QG-3. Продуктивність синхронної перевірки (Speed)**
+**QG-2. Продуктивність синхронної перевірки (Speed)**
 - **When:** користувач завантажує STL-файл до max file size (≤50 MB, PRD §6).
-- **Then:** p95 latency upload-validate запиту ≤10000 ms (PRD §6 Latency, дослівно); throughput ≥5 req/s per instance (PRD §6, дослівно).
+- **Then:** p95 latency upload-validate запиту ≤10000 ms (PRD §6 Latency, дослівно); throughput ≥5 req/s per instance (PRD §6, дослівно). Без sandbox-форку (ADR-0006) цей бюджет має значний запас — конкретні виміряні числа не змінені тут, лише очікування легшого досягнення.
 - **How verify:** k6 smoke test in CI (PRD §6 measurement column).
 
 ## 11. Risks and technical debt
@@ -261,12 +235,11 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| Точність обраної npm-бібліотеки валідації невідома до верифікації (ADR-0001 Negative) — може не досягти PRD §6 ≥99% збігу зі слайсером | Medium | QA sample проти PrusaSlicer CLI перед stage 15 (test-plan); зафіксовано як measurement column у PRD §6 | Yakiv Vakoliuk |
 | Горизонтальне масштабування заблоковане локальним диском (ADR-0003 Negative) — кілька інстансів не бачать одні й ті ж файли | Medium | Мігрувати на S3-сумісне сховище, якщо throughput перевищить одноінстансний ліміт (§7 Scaling thresholds) | Yakiv Vakoliuk |
 | Feasibility фічі (greenfield, без track record) непідтверджена — idea-brief §12 | Low | Переглянути після першого реального шипу фічі (PRD §8, owner: Yakiv Vakoliuk, due: after stl-upload ships) | Yakiv Vakoliuk |
 
 **Accepted debt (acceptable in v1, plan to fix later):**
-- Простий шаровий стиль (ADR-0004) може вимагати рефакторингу у гексагональний, якщо `services/` виросте без чіткої межі між sandbox-викликом і бізнес-правилами — прийнятно для першого модуля за 2-тижневий дедлайн.
+- Простий шаровий стиль (ADR-0004) може вимагати рефакторингу у гексагональний, якщо `services/` виросте без чіткої межі між форматною перевіркою і бізнес-правилами — прийнятно для першого модуля за 2-тижневий дедлайн.
 - UUID v4 (ADR-0005) не сортується за часом створення — якщо знадобиться листинг за recency, треба окрема колонка `created_at`, не сам id.
 
 ## 12. Glossary
@@ -274,9 +247,9 @@ ADR files live under `docs/features/stl-upload/adr/NNNN-<title>.md`.
 | Term | Meaning |
 |---|---|
 | STL file | Формат файлу, що кодує поверхню моделі як набір трикутників. NOT model (модель — абстрактний 3D-об'єкт; файл — конкретне кодування) — CONTEXT.md. |
-| Watertight mesh | Поверхня 3D-моделі без дірок (замкнута/manifold геометрія), потрібна слайсеру. NOT valid file format — CONTEXT.md. |
+| Watertight mesh | Поверхня 3D-моделі без дірок (замкнута/manifold геометрія), потрібна слайсеру. Перевіряється в `quote-engine`, НЕ в `stl-upload` (ADR-0006) — NOT valid file format — CONTEXT.md. |
 | Model | 3D-об'єкт, який користувач хоче надрукувати. NOT STL file — CONTEXT.md. |
-| Valid model | Модель, що пройшла перевірки stl-upload і придатна для слайсера. NOT watertight mesh (watertightness — лише один з критеріїв) — CONTEXT.md. |
+| Valid model (у контексті stl-upload) | STL-файл з коректним заявленим форматом і розміром у межах ліміту. Watertightness тут НЕ перевіряється й НЕ гарантується (ADR-0006) — NOT a geometry-validated model — CONTEXT.md. |
 | User | Особа, яка завантажує модель для друку. NOT vendor (vendor-facing tooling — поза MVP) — CONTEXT.md. |
 | File-id | Системно згенерований UUID v4, єдиний механізм доступу до моделі в v1 (ADR-0005). Не в CONTEXT.md — флаг для `sdlc:fix-term` follow-up. |
 

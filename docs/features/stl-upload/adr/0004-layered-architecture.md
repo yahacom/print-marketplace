@@ -16,7 +16,9 @@ ticket: "<TBD>"
 
 ## Context
 
-stl-upload is the first feature built in this greenfield repository — `CLAUDE.md` has no established code convention yet, so this module's internal layering sets the pattern future features (starting with quote-engine) are likely to follow. The module has a real boundary to keep clean: untrusted input (sandboxed child-process parsing, ADR-0002) versus business logic (validation orchestration, file storage).
+stl-upload is the first feature built in this greenfield repository — `CLAUDE.md` has no established code convention yet, so this module's internal layering sets the pattern future features (starting with quote-engine) are likely to follow.
+
+**Post-hoc note (2026-09-10):** this ADR originally motivated the layering by a boundary between sandboxed child-process parsing (ADR-0002) and business logic. ADR-0006 descoped mesh validation and its sandbox out of stl-upload entirely, so that specific boundary no longer exists here. The layered-architecture decision itself still stands (routes/services/repositories remains a reasonable seam for a single-module solo-maintainer app) — only the original justifying boundary is gone. Left as a historical record rather than rewritten.
 
 ## Decision drivers
 
@@ -39,7 +41,7 @@ stl-upload is the first feature built in this greenfield repository — `CLAUDE.
 - Still separates HTTP concerns (`routes/`), orchestration (`services/`), and storage (`repositories/`) into distinct files.
 
 **Negative**
-- `services/` risks growing into a "god object" without a hard interface boundary between the sandboxed child-process call and business validation rules — must be watched as the module grows.
+- `services/` risks growing into a "god object" without a hard interface boundary between orchestration and business validation rules — must be watched as the module grows. (Originally framed around the sandboxed child-process call, ADR-0002; that call no longer exists per ADR-0006, but the general risk of an unbounded `services/` layer remains.)
 - If quote-engine or later features copy this pattern and outgrow it, migrating to hexagonal later touches every module that copied it — this ADR is a precedent-setting decision, not just a local one.
 
 **Neutral**
@@ -49,4 +51,4 @@ stl-upload is the first feature built in this greenfield repository — `CLAUDE.
 
 - PRD: [[../PRD.md]]
 - SAD: [[../sad.md]] §5
-- Related ADR: [[0002-child-process-sandbox]] (the boundary `services/` must respect)
+- Related ADR: [[0002-child-process-sandbox]] (Superseded by [[0006-descope-mesh-validation-to-quote-engine]] — originally the boundary `services/` was built to respect)

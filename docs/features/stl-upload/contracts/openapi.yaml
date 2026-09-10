@@ -1,0 +1,131 @@
+openapi: 3.1.0
+info:
+  title: stl-upload API
+  version: 0.1.0
+  description: |
+    Entry point of the print-marketplace MVP flow (upload -> quote -> confirm/decline).
+    Accepts an STL file upload, checks the declared format (content-type/extension)
+    and size, and either stores the file under an unguessable file-id ready for
+    quote-engine, or returns a plain-language rejection reason. No mesh/geometry
+    parsing happens here - watertightness and other geometry validation is
+    quote-engine's responsibility, performed when it loads the model into the
+    slicer (ADR-0006). No auto-repair, no queue, no async/pending state
+    (idea-brief stl-upload S2, S4, S13; PRD stl-upload S1, S2).
+
+    quote-engine consumes the stored file directly from the shared filesystem by
+    file-id (ADR-0003, SAD S7) - it is not a consumer of this HTTP API, so no
+    endpoint is exposed for that read path.
+
+servers:
+  - url: https://api.example.com
+    description: Production
+  - url: http://localhost:8080
+    description: Local
+
+paths:
+  /api/v1/uploads:
+    post:
+      summary: Upload an STL file for format/size validation and storage
+      operationId: createUpload
+      description: |
+        Synchronous: format + size validation happens inside the request (PRD
+        stl-upload S6 latency p95 <=10000ms). No geometry/mesh validation is
+        performed - a 201 response means the file was accepted as declared-STL
+        and stored, not that its geometry is printable (ADR-0006; quote-engine
+        checks that). No Idempotency-Key - by design, every submission (including
+        byte-identical retries) is issued a new file-id with no dedupe (PRD
+        stl-upload S6.1 abuse case #3).
+      security: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  contentMediaType: model/stl
+                  format: binary
+                  description: STL file, up to 50 MB (PRD stl-upload S6).
+            encoding:
+              file:
+                contentType: model/stl, application/sla, application/octet-stream
+      responses:
+        "201":
+          description: File accepted as a declared STL within the size limit and stored - ready for quote-engine. Geometry is not checked here (ADR-0006).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadAccepted"
+              examples:
+                default:
+                  value:
+                    file_id: "b3f2a1d4-9e2c-4a7b-8f0d-1c9e6a2b7d55"
+                    status: valid
+        "400":
+          description: File was not declared as an STL (wrong/missing content-type or extension) or is empty. AC-02. This is a format-declaration check only - it does not parse the file's contents.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                default:
+                  value:
+                    code: upload.invalid_format
+                    message: We couldn't accept this file as an STL. Please check the file and try again.
+        "413":
+          description: File exceeds the 50 MB max upload size (PRD stl-upload S6).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                default:
+                  value:
+                    code: upload.file_too_large
+                    message: This file is larger than the 50 MB upload limit.
+        "429":
+          description: Rate limit exceeded - 30 uploads/minute per IP (PRD stl-upload S6.1 abuse case #4).
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                default:
+                  value:
+                    code: upload.rate_limited
+                    message: Too many uploads from this connection. Please wait a moment and try again.
+        "5XX":
+          $ref: "#/components/responses/Error"
+
+components:
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: "upload.invalid_format" }
+        message: { type: string }
+        details: { type: object }
+
+    UploadAccepted:
+      type: object
+      required: [file_id, status]
+      properties:
+        file_id:
+          type: string
+          format: uuid
+          description: System-generated UUID v4 (ADR-0005) - the sole access-control mechanism for the stored model in v1 (AC-04). No accounts/auth exist in the MVP.
+        status:
+          type: string
+          enum: [valid]
+          description: Only success state modeled here; failures are reported via the 400 error response, not a status field.
+
+  responses:
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
