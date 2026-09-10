@@ -3,7 +3,7 @@ status: Approve
 owner: "Yakiv Vakoliuk"
 reviewers: ["Tech Lead", "Security Lead"]
 updated_at: "2026-09-10"
-feature_size: M
+feature_size: S
 stage: "03"
 ticket: "<TBD>"
 ---
@@ -124,4 +124,4 @@ Struck along with US-03: watertightness is no longer checked or enforced by stl-
 
 - [x] Confirm `feature_size` (Effort=S per idea-brief §7) still holds after Socratic edits (wider latency buffer, 50 MB file-size limit, UUIDv4-style identifier, sandboxed parsing) via `sdlc:classify-size` — owner: Yakiv Vakoliuk, due: before architecture-design — **Resolved: M**. PR count (2-5) and timeline (1 week) alone would suggest S, but the feature touches two of {new module, new API, DB migration} — a new untrusted-binary-parsing module, a new upload API surface, and file-metadata storage (§6.1) — which is S-disqualifying per the skill's mapping table; per the skill's edge-case guidance this risk signal outweighs the compact PR/timeline estimate. (Note: an earlier draft of this rationale also cited "public-facing breaking changes" — dropped on critic review, since stl-upload is a green-field first feature with no existing public surface to break; idea-brief §4.) User confirmed M.
 - [ ] Feasibility (idea-brief §12) remains unconfirmed (greenfield, no track record) — revisit after the first real shipped feature. — owner: Yakiv Vakoliuk, due: after stl-upload ships
-- [ ] Re-run `sdlc:classify-size` for `feature_size` (currently M) — the row above's M-classification driver "a new untrusted-binary-parsing module" no longer applies after ADR-0006 (mesh validation + sandboxing moved to quote-engine); the remaining drivers (new upload API surface) may or may not still be S-disqualifying on their own. Frontmatter `feature_size` left at M here pending that re-classification — owner: Yakiv Vakoliuk, due: before next architecture-affecting change
+- [x] Re-run `sdlc:classify-size` for `feature_size` (was M) — the prior M-classification driver "a new untrusted-binary-parsing module" no longer applies after ADR-0006 (mesh validation + sandboxing moved to quote-engine); the remaining driver (new upload API surface, one of three per the skill's mapping table) is not S-disqualifying on its own. Re-run 2026-09-10: PR count 2-5, timeline 1 week, one of {new module/API/migration}, internal-only breaking changes — maps to **S**. Frontmatter and `.size` updated to S — owner: Yakiv Vakoliuk, due: before next architecture-affecting change — **Resolved: S**.
