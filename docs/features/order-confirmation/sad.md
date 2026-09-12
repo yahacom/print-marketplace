@@ -135,32 +135,77 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- 🎯 Навіщо: ПОТІК У RUNTIME для 1-2 критичних сценаріїв. Хто з ким коли і у якому     -->
-<!--           порядку говорить. Без §6 §5 — лише купа коробок без життя.                  -->
-<!-- 📋 Що писати: Mermaid sequenceDiagram. Учасники — імена з §5 (не вигадуй нові!).      -->
-<!--           Повідомлення семантичні («складає чорновик»), БЕЗ HTTP-методів/шляхів —     -->
-<!--           ендпоінт-рівневі sequence-діаграми зʼявляться у stage 06 (define-api).      -->
-<!-- 📌 Приклад: «methodist → web-app: складає чорновик → web-app → content-api: зберегти». -->
-
-**Critical flow 1: <flow name>**
+**Critical flow 1: Happy path — confirm (US-02, AC-01)**
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant API
-    participant Service
-    participant DB
-    User->>API: <request>
-    API->>Service: <call>
-    Service->>DB: <write tx>
-    DB-->>Service: ok
-    Service-->>API: result
-    API-->>User: 201
+    participant API as Order API
+    participant QE as quote-engine
+    participant FS as Firestore
+    User->>API: Opens confirmation screen, subscribes to SSE
+    API->>QE: Requests quote status
+    QE-->>API: still slicing
+    API-->>User: SSE — loading state
+    QE-->>API: slicing complete, quote + cost breakdown ready
+    API-->>User: SSE — quote ready, shows cost breakdown
+    User->>API: Confirms the quote
+    API->>FS: create(orders/{sharedId}, decision=confirmed)
+    FS-->>API: created
+    API-->>User: 201 — order confirmed
 ```
 
-<!-- For XS/S: 1 flow above is enough. For M+: add 2-4 more (e.g. failure-mode flow, async flow). -->
+**Critical flow 2: Happy path — decline (US-03, AC-02)**
 
-**Critical flow 2: <e.g. async event propagation>** — <if applicable, otherwise N/A>.
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Order API
+    participant FS as Firestore
+    User->>API: Declines the quote (already displayed)
+    API->>FS: create(orders/{sharedId}, decision=declined)
+    FS-->>API: created
+    API-->>User: 200 — decision recorded, no order placed
+```
+
+**Critical flow 3: No quote yet (US-01, AC-03)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Order API
+    participant QE as quote-engine
+    User->>API: Opens confirmation screen for a quote that hasn't been produced
+    API->>QE: Requests quote status
+    QE-->>API: not found / not started
+    API-->>User: 404 — "no quote available yet", confirm/decline hidden
+```
+
+**Critical flow 4: Domain invariant — duplicate confirm/decline blocked (AC-04)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Order API
+    participant FS as Firestore
+    User->>API: Confirms/declines a quote that already has a decision (double-click, retry, back-button)
+    API->>FS: create(orders/{sharedId}, decision=...)
+    FS-->>API: ALREADY_EXISTS
+    API-->>User: 409 — "this quote already has a final decision"
+```
+
+**Critical flow 5: Model file gone (AC-05)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Order API
+    participant SU as stl-upload
+    User->>API: Confirms the quote
+    API->>SU: Checks model file still exists
+    SU-->>API: not found
+    API-->>User: 409 — "model needs to be re-uploaded before an order can be placed"
+```
 
 ## 7. Deployment view
 
