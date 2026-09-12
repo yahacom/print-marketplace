@@ -209,24 +209,17 @@ sequenceDiagram
 
 ## 7. Deployment view
 
-<!-- 🎯 Навіщо: ТОПОЛОГІЯ, яку DevOps має знати без читання Helm-чартів — скільки реплік,  -->
-<!--           де живе фоновий обробник, ПРИ ЯКИХ ЧИСЛАХ масштабуємось.                     -->
-<!-- 📋 Що писати: 2-3 речення про топологію + метрики + алерти + конкретні числа-пороги.   -->
-<!-- 📌 Приклад: «500 IC → партиціонування за кварталом» (не «при зростанні подумаємо»).    -->
-<!-- 🎯 Можна N/A для XS/S функцій, що переюзають існуюче розгортання без змін.            -->
-
-<Topology in 2-3 sentences. Where it runs (k8s / VM / serverless), replicas, scaling thresholds.>
+order-confirmation деплоїться в тому ж single Node/TS-процесі, що й stl-upload/quote-engine — прямий наслідок ADR-0002 (in-process виклики вимагають co-location), не окреме ADR-гідне рішення. Один процес на одній VM через systemd/pm2, без контейнерної оркестрації — той самий прецедент, що й stl-upload §7 (§2 solo-maintainer бюджет).
 
 **Monitoring:**
-- <Metrics — e.g. Prometheus `<metric_name>`>
-- <Alerts — e.g. "outbox lag > 10 min → page on-call">
-- <Tracing — e.g. OpenTelemetry HTTP spans>
+- Latency confirm/decline запису — p95 ≤300мс (PRD §6, дослівно).
+- Latency показу квоти — p95 ≤200мс від моменту готовності квоти (PRD §6, дослівно).
+- Лічильник відкритих SSE-з'єднань (ADR-0005 Negative — новий операційний параметр).
+- Alert: сплеск 409 на confirm/decline (AC-04 duplicate-attempts) — сигнал double-submit-бага чи зловживання (PRD §6.1 spam-create abuse case).
 
 **Scaling thresholds:**
-- <e.g. 500 IC × 5 goals × 26 checkpoints/Q = 65k rows/year — comfortable in one table>
-- <e.g. partitioning by quarter at >500k rows/year>
-
-<!-- For XS/S that doesn't change deployment: <!-- N/A: feature reuses existing deployment unit -->. -->
+- Один інстанс у v1 — узгоджено з ADR-0002 (in-process) і ADR-0005 (SSE-з'єднання без cross-instance affinity).
+- Горизонтальне масштабування вимагає спершу вирішити session-affinity для SSE (ADR-0005 Negative) і, за потреби, розділити модулі на окремі деплой-юніти (переглянути ADR-0002) — задокументовано як accepted debt у §11.
 
 ## 8. Crosscutting concepts
 
