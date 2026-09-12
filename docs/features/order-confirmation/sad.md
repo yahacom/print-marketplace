@@ -271,25 +271,23 @@ ADR files live under `docs/features/order-confirmation/adr/NNNN-<title>.md`.
 
 ## 11. Risks and technical debt
 
-<!-- 🎯 Навіщо: ⭐ збирає ВСЕ, що може зламатись — і не лише технічне. Без §11 ризики   -->
-<!--           обговорюються на стендапах і губляться; борг лишається у голові того,    -->
-<!--           хто його прийняв.                                                          -->
-<!-- 📋 Що писати: таблиця ризик/борг — серйозність — мітигація — власник. Технічний    -->
-<!--           борг окремою секцією.                                                      -->
-<!-- 📌 Приклад: «EM не пушить — member не оновлює дані | High | …». Перший ризик —      -->
-<!--           часто продуктовий, не технічний. Це нормально.                            -->
-
-<!-- Severity column literals: Low / Medium / High for regular risks; "Open question" for rows
-     created by Step-7 `Save as Open Question` resolutions (see references/socratic-loop.md). -->
+<!-- N/A: greenfield — no brownfield gotchas from Explore report -->
 
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| <e.g. Outbox lag may reach hours during downstream outage> | Medium | <Alert >10 min, on-call playbook, retry backoff> | <DevOps> |
-| <e.g. No event schema versioning in v1> | Medium | <ADR-NNNN planned for v2, graceful handling of unknown fields> | <Backend> |
-| Open architectural decision: <decision-headline> | Open question | Resolve before <stage trigger or YYYY-MM-DD>; <inline rationale from Step-7 Save-as-OQ> | <owner> |
+| quote-engine ще не спроєктований — контракт «quoteId = stl-upload file-id» (ADR-0003) потребує підтвердження на власному architecture-design проході quote-engine | Medium | Підтвердити під час quote-engine stage 04-05; до того — прийняте припущення | Yakiv Vakoliuk |
+| Відкриті SSE-з'єднання на інстанс обмежують горизонтальне масштабування (ADR-0005 Negative) | Low | Переглянути при переході на кілька інстансів — session affinity або перехід на polling | Yakiv Vakoliuk |
+| Stale-price confirm — немає staleness/expiry перевірки квоти у v1 (PRD §1 override, §6.1) | Medium | Свідомо прийнятий ризик; переглянути після запуску за сигналами скарг на ціну | Yakiv Vakoliuk |
+| Orphaned file reference — модель може бути видалена stl-upload retention policy вже ПІСЛЯ підтвердження order (AC-05 перевіряє лише в момент рішення, ADR-0002 live-check не покриває «після») | Medium | Flagged для наступного перегляду — можливе рішення: retention guarantee в stl-upload або snapshot у order-confirmation | Yakiv Vakoliuk |
+| Немає authorization-перевірки на confirm/decline у v1 (PRD §1 feature-owner override) | Medium | Свідомо прийнятий ризик, узгоджено з відсутністю акаунтів у MVP | Yakiv Vakoliuk |
+| Open architectural decision: quote-engine's final output contract (price/print time/material/breakdown/file reference) | Open question | Resolve before quote-engine ships / stage 09 api-contracts (PRD §8) | Yakiv Vakoliuk |
+
+**Resolved by this SAD:** PRD §8's "stl-upload retention guarantee vs. order-confirmation snapshot" open question is answered — order-confirmation does a **live check** against stl-upload at confirm time (ADR-0002, §6 flow 5), not a snapshot; this is what makes AC-05's "re-upload" messaging coherent.
 
 **Accepted debt (acceptable in v1, plan to fix later):**
-- <e.g. Goal entity is not versioned (immutable) — OK for v1, may need audit versioning in v2>
+- Firestore `create()`-only pattern (ADR-0004) does not support future decision revision — a future release needing edit/re-decide must migrate to a transaction-based pattern.
+- SSE reconnection/heartbeat is not handled for very long slicing jobs (ADR-0005 Neutral) — acceptable while slicing times stay short.
+- Layered style (§5) may need refactor into clearer boundaries if the module grows beyond its current confirm/decline scope — same caveat as stl-upload ADR-0004.
 
 ## 12. Glossary
 
