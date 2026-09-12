@@ -291,14 +291,15 @@ ADR files live under `docs/features/order-confirmation/adr/NNNN-<title>.md`.
 
 ## 12. Glossary
 
-<!-- 🎯 Навіщо: ⭐ СЛОВНИК ДОМЕНУ, який припиняє суперечки через рік («checkpoint —      -->
-<!--           weekly чи biweekly? Quarter — календарний чи фіскальний?»).                -->
-<!-- 📋 Що писати: таблиця термін / значення. Бізнес-терміни + технічні вперемішку.       -->
-<!--           Один термін може мати дві мови у заголовку: «Goal (Обʼєктив)».              -->
-<!-- 📌 Приклад: «Lesson | урок усередині курсу, що складається з блоків (text, video)». -->
-
 | Term | Meaning |
 |---|---|
-| <e.g. Goal> | <quarterly intent in statement form> |
-| <e.g. KR> | <Key Result — measurable target linked to a Goal> |
-| <e.g. Checkpoint> | <bi-weekly progress update on a KR> |
+| Order | Запис рішення користувача (confirm/decline) на квоту. NOT quote (квота — пропозиція, order — вже прийняте рішення) — CONTEXT.md. |
+| Quote | Цінова пропозиція (час друку + матеріал + ціна), яку рахує quote-engine зі слайсингу валідної моделі. NOT order — CONTEXT.md. |
+| Cost breakdown | Розкладка фінальної ціни квоти на компоненти. NOT quote (квота — вся пропозиція, breakdown — лише розклад ціни всередині неї) — CONTEXT.md. |
+| User | Особа, яка завантажує модель для друку і приймає рішення confirm/decline. NOT vendor — CONTEXT.md. |
+| Model | 3D-об'єкт, який користувач хоче надрукувати. NOT STL file — CONTEXT.md. |
+| STL file | Формат файлу, що кодує поверхню моделі як набір трикутників; order-confirmation перевіряє лише його наявність (AC-05), не вміст. NOT model — CONTEXT.md. |
+| Shared id / quoteId | Наскрізний UUID v4, згенерований stl-upload як file-id (ADR-0005 у stl-upload) і використаний без змін як quoteId і Firestore document id ордера (ADR-0003, ADR-0004). Не в CONTEXT.md — флаг для `sdlc:fix-term`. |
+| Slicing | Процес, у якому quote-engine рахує квоту з валідної моделі (тривалість непередбачувана, вимагає SSE/loading-стану, ADR-0005). Не в CONTEXT.md — флаг для `sdlc:fix-term`. |
+
+<!-- "Shared id / quoteId" і "Slicing" surfaced during this pass — flag for sdlc:fix-term follow-up. -->
