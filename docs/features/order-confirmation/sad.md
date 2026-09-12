@@ -223,22 +223,17 @@ order-confirmation деплоїться в тому ж single Node/TS-проце
 
 ## 8. Crosscutting concepts
 
-<!-- 🎯 Навіщо: НАСКРІЗНІ ПАТЕРНИ, які перетинають кілька модулів: логування, помилки,    -->
-<!--           авторизація, ID strategy, outbox, кеш. ⭐ Друга найгустіша секція.          -->
-<!--           Якщо патерн всередині одного модуля — він НЕ сюди. Якщо це конвенція        -->
-<!--           проєкту в цілому — у CLAUDE.md.                                              -->
-<!-- 📋 Що писати: таблиця концепт / конвенція / де визначено. Один рядок на концепт.      -->
-<!-- 📌 Приклад: «UUID v7 (час+випадковий, сортується) у app-layer» — як default з CLAUDE.md. -->
+<!-- Greenfield: CLAUDE.md ще не має власних logging/auth/error-конвенцій — це свіжі рішення, не override. -->
 
 | Concept | Convention | Where defined |
 |---|---|---|
-| Logging | <e.g. structured slog, fields `module=<name>`> | <CLAUDE.md §X or here> |
-| Authentication | <e.g. JWT via session middleware> | <CLAUDE.md §X> |
-| Error handling | <e.g. domain sentinel → ports/errors.go → apperr JSON> | <CLAUDE.md §X> |
-| ID strategy | <e.g. UUID v7 in app layer> | <CLAUDE.md §X> |
-| Internationalisation | <e.g. N/A, English only> | — |
-| Observability | <e.g. OpenTelemetry on HTTP boundaries> | — |
-| Outbox / events | <module-specific patterns, if any> | <here> |
+| Logging | Структуровані JSON-логи, поле `request_id`; жодного вмісту рішення понад id/статус | here |
+| Authentication | N/A — MVP не має акаунтів, свідомий feature-owner override | PRD §1, §8 |
+| Error handling | 404 — немає квоти (AC-03); 409 — повторне рішення (AC-04) або файл відсутній (AC-05); повідомлення без технічного жаргону | here |
+| ID strategy | Наскрізний UUID v4, успадкований від stl-upload file-id — новий ID не генерується | ADR-0003 |
+| Internationalisation | N/A, лише англійська | — |
+| Observability | Latency-метрики + лічильник відкритих SSE-з'єднань | §7 |
+| Rate limiting | 10 confirm/decline спроб/хв на сесію | PRD §6.1 |
 
 ## 9. Architecture decisions
 
