@@ -254,29 +254,20 @@ ADR files live under `docs/features/order-confirmation/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
-<!-- 🎯 Навіщо: ДЕРЕВО ЯКОСТЕЙ (Quality Tree) — беремо мету з §1 і розкладаємо на          -->
-<!--           конкретні листя: тести, метрики, конфіги, drill-и. ⭐ Без §10 §1 — це       -->
-<!--           маніфест. З §10 кожна декларація мапиться на щось, ЩО МОЖНА ДОВЕСТИ.        -->
-<!-- 📋 Що писати: на кожну якість з §1 — When / Then / How verify. Числа з PRD §6 NFR     -->
-<!--           ДОСЛІВНО (не округлюй p95 ≤250мс до ≤300мс — це F6-помилка критика).        -->
-<!-- 📌 Приклад: «p95 ≤500 мс на UPDATE блоку, перевіримо k6 load test 100 req/s».        -->
+**QG-1. Коректність доменного інваріанту (AC-04)**
+- **When:** два запити confirm/decline надходять на ту саму квоту (подвійний клік, retry, back-button).
+- **Then:** записується рівно одне рішення; другий запит відхиляється — «duplicate confirm/decline on the same quote is rejected, not double-recorded» (PRD §6, дослівно).
+- **How verify:** інтеграційний тест — два конкурентних `POST /confirm` на той самий quoteId, перевірка: рівно один Firestore-документ створено, рівно одна відповідь 409.
 
-Each top-3 goal from §1 expanded into a full scenario:
+**QG-2. Продуктивність запису/читання**
+- **When:** користувач підтверджує/відхиляє квоту під нормальним навантаженням.
+- **Then:** p95 запису confirm/decline ≤300 мс; p95 показу підсумку квоти ≤200 мс (PRD §6, дослівно).
+- **How verify:** k6 load test при ≥20 req/s на інстанс (PRD §6, дослівно), вимірюються обидва p95.
 
-**QG-1. <quality attribute>**
-- **When:** <trigger condition>
-- **Then:** <expected behavior with numbers from PRD NFR>
-- **How verify:** <test / chaos drill / load test / observability>
-
-**QG-2. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
-
-**QG-3. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-3. Доступність**
+- **When:** штатна робота фічі протягом місяця.
+- **Then:** 99.5% щомісячний SLO (PRD §6, дослівно).
+- **How verify:** uptime/SLO dashboard, що трекає відношення успішних confirm/decline до 5xx помилок за місяць.
 
 ## 11. Risks and technical debt
 
