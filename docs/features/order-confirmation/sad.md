@@ -98,45 +98,39 @@ Each tactical decision in later sections should be traceable to one of these str
 
 ## 5. Building block view
 
-<!-- 🎯 Навіщо: ВНУТРІШНЯ ДЕКОМПОЗИЦІЯ — модулі, контейнери, БД. Статична топологія:   -->
-<!--           хто з ким може говорити. Без §5 §6 (сценарії) не має словника учасників. -->
-<!-- 📋 Що писати: 1 абзац про стиль (шари/гексагональна/clean/на подіях) +            -->
-<!--           дерево папок + Mermaid C4Container.                                       -->
-<!-- 📌 Приклад: «web-app, content-api, media-worker, postgres, s3, cdn».                -->
-
-<One paragraph: layered / hexagonal / clean / event-driven. Why.>
+Простий шаровий стиль (routes/services/repositories) — новий модуль у тому ж Node/TS-монолiтi, за прикладом stl-upload ADR-0004: менше файлів/інтерфейсів на старті, узгоджено з 2-тижневим орієнтовним бюджетом solo-maintainer (§2). Не ADR-гідне рішення — внутрішнє планування одного модуля, не міжмодульний контракт.
 
 **Internal decomposition:**
 
 ```
-<e.g. internal/modules/goals/>
-├── domain/       <entities + sentinel errors>
-├── app/          <use cases / services>
-├── infra/        <repository + outbox impl>
-├── ports/        <HTTP handlers, DTOs, error mapping>
-└── module.go     <self-wiring>
+src/modules/order-confirmation/
+├── routes/        <HTTP: GET quote summary, POST confirm, POST decline, GET SSE stream (ADR-0005)>
+├── services/       <confirm/decline use case: читає квоту з quote-engine, перевіряє файл через stl-upload
+│                    (ADR-0002 — in-process виклики), пише рішення через repository>
+├── repositories/   <Firestore order-repository — create() по shared id (ADR-0001, ADR-0004)>
+└── module.ts       <self-wiring>
 ```
 
 **C4 Container (L2):**
 
 ```mermaid
 C4Container
-    title <system> — Containers
+    title order-confirmation — Containers
 
-    Person(user, "<User>")
+    Person(user, "User")
 
-    Container_Boundary(boundary, "<Our System>") {
-        Container(web, "<Web/API container>", "<technology>", "<purpose>")
-        Container(svc, "<Service container>", "<technology>", "<purpose>")
-        ContainerDb(db, "<DB>", "<technology>", "<purpose>")
+    Container_Boundary(boundary, "order-confirmation service") {
+        Container(api, "Order API", "Node.js/TypeScript", "Shows quote summary, streams slicing-ready events (SSE), records confirm/decline")
     }
 
-    System_Ext(ext, "<External>", "<purpose>")
+    System_Ext(quote_engine, "quote-engine", "In-process call — supplies quote + cost breakdown (ADR-0002)")
+    System_Ext(stl_upload, "stl-upload", "In-process call — checks model file still exists (AC-05, ADR-0002)")
+    SystemDb(firestore, "Firestore", "Stores order/decision records, keyed by shared id (ADR-0001, ADR-0003, ADR-0004)")
 
-    Rel(user, web, "<interaction>", "<protocol>")
-    Rel(web, svc, "<service calls>")
-    Rel(svc, db, "<reads/writes>", "<driver>")
-    Rel(svc, ext, "<emits>", "<protocol>")
+    Rel(user, api, "Views quote (via SSE once ready), confirms/declines", "HTTPS")
+    Rel(api, quote_engine, "Reads quote + cost breakdown", "in-process call")
+    Rel(api, stl_upload, "Checks model file exists", "in-process call")
+    Rel(api, firestore, "create() order document by shared id", "Firestore SDK")
 ```
 
 ## 6. Runtime view
