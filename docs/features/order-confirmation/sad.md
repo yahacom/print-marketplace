@@ -51,34 +51,35 @@ ticket: "<TBD>"
 
 ## 3. Context and scope
 
-<!-- 🎯 Навіщо: малює КОРДОН СИСТЕМИ — хто з нею говорить ззовні, де закінчується зона довіри. -->
-<!--           Без §3 §5 і §8 (авторизація) розпливаються — неясно, що «всередині», а що «зовні». -->
-<!-- 📋 Що писати: 2-3 речення бізнес-контексту + таблиця зовнішніх систем + Mermaid C4Context. -->
-<!-- 📌 Приклад: «зовнішні — нема (свідома відмова від third-party у v1)» — це теж рішення.   -->
-<!-- Кордон довіри (trust boundary) — лінія, за якою ти не довіряєш даним без перевірки.       -->
+<!-- brownfield: N/A — greenfield repo -->
 
-<Business context in 2-3 sentences. What the system does for whom.>
+Після того як quote-engine рахує квоту, користувач переглядає order-confirmation екран з cost breakdown і підтверджує або відхиляє квоту. Рішення (order record) персистентно зберігається у Firestore — керованому NoSQL-сховищі Google Cloud, яке є зовнішньою системою відносно нашого коду (інший власник процесу, інший lifecycle). AC-05 додатково перевіряє, що файл моделі в stl-upload ще існує перед підтвердженням.
 
 **External systems (in / out):**
 
 | Actor or system | Type | Interaction |
 |---|---|---|
-| <e.g. IC> | Person | Creates goals, adds checkpoints |
-| <e.g. notification-service> | System (internal) | Receives cron registration |
-| <e.g. Identity Provider> | System (external) | Provides JWT tokens |
+| User | Person | Переглядає cost breakdown, підтверджує/відхиляє квоту |
+| quote-engine | System (internal) | Постачає квоту + cost breakdown, які показує/по яким вирішує ця фіча |
+| stl-upload | System (internal) | Власник файлу моделі; AC-05 перевіряє, що файл ще існує |
+| Firestore | System_Ext (managed cloud datastore) | Персистентне сховище order/decision-записів — шар персистенції фічі |
 
 **C4 Context (L1):**
 
 ```mermaid
 C4Context
-    title <system> — System Context
+    title order-confirmation — System Context
 
-    Person(user, "<User>", "<role + intent>")
-    System(system, "<Our System>", "<one-sentence description>")
-    System_Ext(ext, "<External system>", "<one-sentence description>")
+    Person(user, "User", "Reviews a quote's cost breakdown, confirms or declines it")
+    System(order_confirmation, "order-confirmation", "Shows the quote summary, records the confirm/decline decision")
+    System_Ext(quote_engine, "quote-engine", "Produces the quote (price, print time, cost breakdown) for a valid model")
+    System_Ext(stl_upload, "stl-upload", "Owns the uploaded model file; AC-05 checks it still exists")
+    SystemDb(firestore, "Firestore", "Google Cloud managed NoSQL store — persists order/decision records")
 
-    Rel(user, system, "<interaction>", "<protocol>")
-    Rel(system, ext, "<interaction>", "<protocol>")
+    Rel(user, order_confirmation, "Views quote, confirms/declines", "HTTPS")
+    Rel(order_confirmation, quote_engine, "Reads quote + cost breakdown", "internal call")
+    Rel(order_confirmation, stl_upload, "Checks model file still exists", "internal call")
+    Rel(order_confirmation, firestore, "Writes/reads order/decision record", "Firestore SDK")
 ```
 
 ## 4. Solution strategy
