@@ -84,17 +84,15 @@ C4Context
 
 ## 4. Solution strategy
 
-<!-- 🎯 Навіщо: 3-4 СТРАТЕГІЧНІ СТОВПИ, з яких потім ростуть усі ADR. Без §4 кожен ADR    -->
-<!--           виглядає випадковим — нема зонтика. ⭐ Найгустіша секція — тут ADR-gate    -->
-<!--           спрацьовує майже завжди (рішення незворотні + мульти-модульні).            -->
-<!-- 📋 Що писати: список з 3-4 виборів. На кожен — заголовок + 2-3 речення rationale.    -->
-<!-- 📌 Приклад: «Зберігати урок як таблицю блоків» — стовп, з якого виросло ADR-0001.    -->
+**Top strategic choices (the seeds for ADRs):**
 
-**Top-3 strategic choices (the seeds for ADRs):**
+1. **Firestore як сховище order-записів** — керований NoSQL-стор Google Cloud; немає потреби піднімати/адмініструвати БД-сервер у межах solo-maintainer бюджету (§2), atomic per-document write вкладається в p95 ≤300мс (PRD §6). → ADR-0001.
+2. **In-process виклики функцій між order-confirmation, quote-engine, stl-upload** — усі три лишаються модулями одного Node/TS-монолiту (§2, немає окремих деплой-юнітів); повторює вже встановлений прецедент stl-upload↔quote-engine (пряме читання з диска, без HTTP). Уникає зайвої мережевої затримки під бюджет §1 QG-2 (p95 ≤200мс на показ квоти). → ADR-0002.
+3. **Наскрізний UUID v4 (file-id → quoteId → order id)** — той самий ідентифікатор, який stl-upload генерує при валідації файлу (ADR-0005 у stl-upload), проходить без змін через слайсинг і фіксується як ID order-документа. Узгоджено з PRD §3 non-goals (немає re-quote — модель:квота:order = 1:1:1). → ADR-0003.
+4. **Firestore `create()` як механізм exactly-once для AC-04** — document id = наскрізний id з (3); Firestore атомарно відхиляє повторний `create()` тим самим id (ALREADY_EXISTS), що замінює SQL UNIQUE constraint без додаткового коду блокувань. → ADR-0004.
+5. **Server-Sent Events для сигналу готовності квоти** — після stl-upload користувач бачить loading-стан під час слайсингу; SSE штовхає подію «квота готова» з мінімальною затримкою, без full-page reload і без зайвої складності WebSocket для односпрямованого сигналу. → ADR-0005.
 
-1. **<e.g. Module isolation through events>** — <2-3 sentences rationale referencing Quality Goals and constraints>.
-2. **<e.g. Single-store persistence (Postgres)>** — <2-3 sentences>.
-3. **<e.g. Server-rendered dashboard>** — <2-3 sentences>.
+**Успадковано з PRD (не перевирішується тут):** авторизація — v1 свідомо без owner-перевірки на confirm/decline (feature owner override, PRD §1 «Decision overrides», PRD §8 open question) — це вже зафіксований, а не новий вибір.
 
 Each tactical decision in later sections should be traceable to one of these strategic seeds. Tactical decisions that *contradict* a strategic choice are red flags — surface them in §11 Risks.
 
@@ -219,10 +217,13 @@ sequenceDiagram
 
 | # | Title | Status | Section |
 |---|---|---|---|
-| <NNNN> | <imperative — e.g. "Use sliding window for rate limiting"> | Accepted | §<N> |
-| <NNNN> | <imperative — e.g. "Co-locate outbox worker in API process"> | Accepted | §<N> |
+| 0001 | Store order records in Firestore | Accepted | §4 |
+| 0002 | Use in-process module calls for order-confirmation integration | Accepted | §4 |
+| 0003 | Thread stl-upload's file-id as the shared quote/order id | Accepted | §4 |
+| 0004 | Use Firestore document create() for exactly-once decisions | Accepted | §4 |
+| 0005 | Use Server-Sent Events for slicing-completion updates | Accepted | §4 |
 
-ADR files live under `docs/features/<slug>/adr/NNNN-<title>.md`.
+ADR files live under `docs/features/order-confirmation/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
