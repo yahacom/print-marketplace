@@ -282,7 +282,9 @@ ADR files live under `docs/features/order-confirmation/adr/NNNN-<title>.md`.
 | Немає authorization-перевірки на confirm/decline у v1 (PRD §1 feature-owner override) | Medium | Свідомо прийнятий ризик, узгоджено з відсутністю акаунтів у MVP | Yakiv Vakoliuk |
 | Open architectural decision: quote-engine's final output contract (price/print time/material/breakdown/file reference) | Open question | Resolve before quote-engine ships / stage 09 api-contracts (PRD §8) | Yakiv Vakoliuk |
 
-**Resolved by this SAD:** PRD §8's "stl-upload retention guarantee vs. order-confirmation snapshot" open question is answered — order-confirmation does a **live check** against stl-upload at confirm time (ADR-0002, §6 flow 5), not a snapshot; this is what makes AC-05's "re-upload" messaging coherent.
+**Resolved by this SAD:**
+- PRD §8's "no-authz check acceptable for v1?" open question (due: before architecture-design, i.e. this stage) is **closed as-is**: this SAD reaffirms the feature-owner's PRD §1 override — no ownership/authorization check ships in v1 — as the standing decision for this architecture pass; it is not re-opened or re-litigated here.
+- PRD §8's "stl-upload retention guarantee vs. order-confirmation snapshot" open question is answered — AC-05 and §6 flow 5 already specify a **live check** against stl-upload at confirm time, not a snapshot; this is what makes AC-05's "re-upload" messaging coherent. (Not an ADR-0002 concern — ADR-0002 only decided in-process vs. HTTP call style, not the snapshot-vs-live-check axis.)
 
 **Accepted debt (acceptable in v1, plan to fix later):**
 - Firestore `create()`-only pattern (ADR-0004) does not support future decision revision — a future release needing edit/re-decide must migrate to a transaction-based pattern.
