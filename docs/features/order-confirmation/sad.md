@@ -207,6 +207,24 @@ sequenceDiagram
     API-->>User: 409 — "model needs to be re-uploaded before an order can be placed"
 ```
 
+**Critical flow 6: Reopening after a decision (US-04)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant API as Order API
+    participant FS as Firestore
+    User->>API: Reopens the confirmation screen for a quote
+    API->>FS: get(orders/{sharedId})
+    alt decision already recorded
+        FS-->>API: found — decision=confirmed | declined
+        API-->>User: 200 — shows final decision, no confirm/decline controls
+    else no decision yet
+        FS-->>API: not found
+        API-->>User: falls through to quote-status flow (Critical flow 1 / 3)
+    end
+```
+
 ## 7. Deployment view
 
 order-confirmation деплоїться в тому ж single Node/TS-процесі, що й stl-upload/quote-engine — прямий наслідок ADR-0002 (in-process виклики вимагають co-location), не окреме ADR-гідне рішення. Один процес на одній VM через systemd/pm2, без контейнерної оркестрації — той самий прецедент, що й stl-upload §7 (§2 solo-maintainer бюджет).
