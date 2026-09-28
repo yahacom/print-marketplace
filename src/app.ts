@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import type { Writable } from "node:stream";
+import { registerMetrics } from "./metrics.js";
 import { stlUploadModule } from "./modules/stl-upload/module.js";
 import {
   registerRequestLogging,
@@ -16,6 +17,7 @@ export function buildApp(options: { logStream?: Writable } = {}) {
   });
 
   registerRequestLogging(app);
+  registerMetrics(app);
   app.get("/health", async () => ({ status: "ok" }));
   app.register(stlUploadModule);
 

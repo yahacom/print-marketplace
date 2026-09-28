@@ -23,7 +23,7 @@ ticket: "<TBD>"
 | T9  | [Structured logging + request_id](t9-structured-logging.md)        | done        | —   | Yakiv Vakoliuk |
 | T10 | [Contract/integration tests](t10-contract-integration-tests.md)    | done        | —   | Yakiv Vakoliuk |
 | T13 | [k6 smoke test](t13-k6-smoke-test.md)                              | done        | —   | Yakiv Vakoliuk |
-| T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)     | Not started | —   | Yakiv Vakoliuk |
+| T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)     | In review   | —   | Yakiv Vakoliuk |
 | T15 | [Security review sign-off](t15-security-review-signoff.md)         | Not started | —   | Security Lead  |
 | T16 | [CHANGELOG + KB note](t16-changelog-kb-note.md)                    | Not started | —   | Yakiv Vakoliuk |
 

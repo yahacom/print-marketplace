@@ -1,0 +1,18 @@
+# Alert rules for stl-upload (SAD §7 Monitoring). Metric source: GET /metrics
+# (http_request_duration_seconds histogram, src/metrics.ts). The scrape config
+# and Alertmanager routing are part of the monitoring backend, not this repo.
+groups:
+  - name: stl-upload
+    rules:
+      # Spike in 5xx on the upload endpoint: degradation or attack (SAD §7).
+      - alert: StlUploadHigh5xxRate
+        expr: |
+          sum(rate(http_request_duration_seconds_count{route="/api/v1/uploads",status_code=~"5.."}[5m]))
+            /
+          sum(rate(http_request_duration_seconds_count{route="/api/v1/uploads"}[5m]))
+            > 0.05
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "More than 5% of stl-upload requests are failing with 5xx"

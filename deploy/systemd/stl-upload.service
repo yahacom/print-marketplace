@@ -1,0 +1,32 @@
+# systemd unit for stl-upload (SAD §7: single long-lived process on one VM).
+# Install: /etc/systemd/system/stl-upload.service, then
+#   systemctl daemon-reload && systemctl enable --now stl-upload
+# Assumes the built app (`npm ci --omit=dev && npm run build`) lives in
+# /opt/stl-upload and that the `stl-upload` user exists.
+[Unit]
+Description=stl-upload service
+After=network.target
+
+[Service]
+Type=simple
+User=stl-upload
+WorkingDirectory=/opt/stl-upload
+Environment=NODE_ENV=production
+Environment=PORT=3000
+# ADR-0003: uploads live on the local disk; quote-engine must read the same path.
+Environment=STORAGE_DIR=/var/lib/stl-upload/models
+ExecStart=/usr/bin/node dist/main.js
+
+# Restart on crash (DoD), with a short delay to avoid a hot loop.
+Restart=always
+RestartSec=2
+
+# Directory is created and owned by the service user; nothing else is writable.
+StateDirectory=stl-upload
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
