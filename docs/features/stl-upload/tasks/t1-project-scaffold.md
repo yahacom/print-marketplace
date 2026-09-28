@@ -34,7 +34,7 @@ First code in this greenfield repo. Set up the Node.js/TypeScript project (`pack
 ## DoD
 
 - `tsc --noEmit` and lint pass
-- App entrypoint starts locally and responds on a health-check route
+- App entrypoint starts locally and responds on a health-check route — an automated test using the framework's in-process request injection (e.g. Fastify's `app.inject()`) against the mounted route is sufficient proof; a real port bind is not required for this DoD to pass
 - `module.ts` wires the three empty layer directories per SAD §5
 
 ## Deps

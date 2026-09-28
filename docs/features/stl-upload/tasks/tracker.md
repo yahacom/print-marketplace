@@ -14,7 +14,7 @@ ticket: "<TBD>"
 
 | ID | Title | Status | PR | Owner |
 |----|-------|--------|----|-------|
-| T1 | [Project scaffold + module skeleton](t1-project-scaffold.md) | Not started | — | Yakiv Vakoliuk |
+| T1 | [Project scaffold + module skeleton](t1-project-scaffold.md) | In review | — | Yakiv Vakoliuk |
 | T2 | [File-id generator](t2-file-id-generator.md) | Not started | — | Yakiv Vakoliuk |
 | T5 | [Filesystem repository](t5-filesystem-repository.md) | Not started | — | Yakiv Vakoliuk |
 | T6 | [Upload service orchestration](t6-upload-service-orchestration.md) | Not started | — | Yakiv Vakoliuk |
