@@ -1,7 +1,19 @@
 import type { FastifyInstance } from "fastify";
 
-const MAX_REQUESTS_PER_WINDOW = 30;
+const DEFAULT_MAX_REQUESTS_PER_WINDOW = 30;
 const WINDOW_MS = 60_000;
+
+// Production keeps the PRD §6.1 default. The override exists so the k6 smoke
+// test (T13), which sends all traffic from one IP, can measure throughput
+// without being throttled; invalid values fall back to the default.
+export function resolveMaxRequestsPerWindow(
+  raw = process.env.UPLOAD_RATE_LIMIT_PER_MIN,
+): number {
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0
+    ? parsed
+    : DEFAULT_MAX_REQUESTS_PER_WINDOW;
+}
 
 // Response body copied from the openapi.yaml 429 example.
 const RATE_LIMITED_BODY = {
@@ -16,6 +28,7 @@ const RATE_LIMITED_BODY = {
 // seen in one window. Installs its hook directly on the given instance (not as a
 // child plugin) so it covers routes registered in the same encapsulation context.
 export function applyRateLimit(app: FastifyInstance): void {
+  const maxRequests = resolveMaxRequestsPerWindow();
   let windowStart = Date.now();
   let counts = new Map<string, number>();
 
@@ -29,7 +42,7 @@ export function applyRateLimit(app: FastifyInstance): void {
     const count = (counts.get(request.ip) ?? 0) + 1;
     counts.set(request.ip, count);
 
-    if (count > MAX_REQUESTS_PER_WINDOW) {
+    if (count > maxRequests) {
       const retryAfterSeconds = Math.ceil((windowStart + WINDOW_MS - now) / 1000);
       return reply
         .code(429)
