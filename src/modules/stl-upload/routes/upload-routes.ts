@@ -1,6 +1,7 @@
 import multipart from "@fastify/multipart";
 import type { FastifyPluginAsync } from "fastify";
 import { uploadAndValidate } from "../services/upload-service.js";
+import { applyRateLimit } from "./rate-limit.js";
 
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
@@ -16,6 +17,9 @@ const FILE_TOO_LARGE_BODY = {
 };
 
 export const uploadRoutes: FastifyPluginAsync = async (app) => {
+  // Registered first so over-limit requests are rejected before body parsing.
+  applyRateLimit(app);
+
   // Multipart limits are enforced while streaming, so an oversized body is cut
   // off before it is fully buffered or handed to the service.
   await app.register(multipart, {
