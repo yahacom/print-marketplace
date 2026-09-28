@@ -1,5 +1,5 @@
 ---
-status: Draft
+status: done
 owner: "Yakiv Vakoliuk"
 reviewers: []
 updated_at: "2026-09-10"

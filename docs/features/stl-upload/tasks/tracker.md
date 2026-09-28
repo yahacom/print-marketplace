@@ -21,7 +21,7 @@ ticket: "<TBD>"
 | T7  | [Upload HTTP route](t7-upload-http-route.md)                       | done        | —   | Yakiv Vakoliuk |
 | T8  | [Rate limiting middleware](t8-rate-limiting-middleware.md)         | done        | —   | Yakiv Vakoliuk |
 | T9  | [Structured logging + request_id](t9-structured-logging.md)        | done        | —   | Yakiv Vakoliuk |
-| T10 | [Contract/integration tests](t10-contract-integration-tests.md)    | Not started | —   | Yakiv Vakoliuk |
+| T10 | [Contract/integration tests](t10-contract-integration-tests.md)    | done        | —   | Yakiv Vakoliuk |
 | T13 | [k6 smoke test](t13-k6-smoke-test.md)                              | Not started | —   | Yakiv Vakoliuk |
 | T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)     | Not started | —   | Yakiv Vakoliuk |
 | T15 | [Security review sign-off](t15-security-review-signoff.md)         | Not started | —   | Security Lead  |
