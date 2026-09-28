@@ -17,7 +17,7 @@ ticket: "<TBD>"
 | T1  | [Project scaffold + module skeleton](t1-project-scaffold.md)       | done        | —   | Yakiv Vakoliuk |
 | T2  | [File-id generator](t2-file-id-generator.md)                       | done        | —   | Yakiv Vakoliuk |
 | T5  | [Filesystem repository](t5-filesystem-repository.md)               | done        | —   | Yakiv Vakoliuk |
-| T6  | [Upload service orchestration](t6-upload-service-orchestration.md) | Not started | —   | Yakiv Vakoliuk |
+| T6  | [Upload service orchestration](t6-upload-service-orchestration.md) | done        | —   | Yakiv Vakoliuk |
 | T7  | [Upload HTTP route](t7-upload-http-route.md)                       | Not started | —   | Yakiv Vakoliuk |
 | T8  | [Rate limiting middleware](t8-rate-limiting-middleware.md)         | Not started | —   | Yakiv Vakoliuk |
 | T9  | [Structured logging + request_id](t9-structured-logging.md)        | Not started | —   | Yakiv Vakoliuk |
