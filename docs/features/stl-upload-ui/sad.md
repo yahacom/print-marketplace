@@ -215,29 +215,22 @@ ADR files live under `docs/features/<slug>/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
-<!-- 🎯 Навіщо: ДЕРЕВО ЯКОСТЕЙ (Quality Tree) — беремо мету з §1 і розкладаємо на          -->
-<!--           конкретні листя: тести, метрики, конфіги, drill-и. ⭐ Без §10 §1 — це       -->
-<!--           маніфест. З §10 кожна декларація мапиться на щось, ЩО МОЖНА ДОВЕСТИ.        -->
-<!-- 📋 Що писати: на кожну якість з §1 — When / Then / How verify. Числа з PRD §6 NFR     -->
-<!--           ДОСЛІВНО (не округлюй p95 ≤250мс до ≤300мс — це F6-помилка критика).        -->
-<!-- 📌 Приклад: «p95 ≤500 мс на UPDATE блоку, перевіримо k6 load test 100 req/s».        -->
-
 Each top-3 goal from §1 expanded into a full scenario:
 
-**QG-1. <quality attribute>**
-- **When:** <trigger condition>
-- **Then:** <expected behavior with numbers from PRD NFR>
-- **How verify:** <test / chaos drill / load test / observability>
+**QG-1. Fast, honest feedback**
+- **When:** A user drops/selects a file and submits the upload.
+- **Then:** Time-to-first-visible-feedback ≤ 2000 ms after file drop/select; progress feedback updates ≥ 1 update/sec during upload; p95 latency submit→result shown ≤ 10500 ms (PRD §6 NFR, verbatim).
+- **How verify:** Client-side `performance.now()` timestamps captured at file-select, first render, and each progress event; verified manually in a pre-demo checklist. No automated browser-perf test exists in this pass (no Playwright/similar tool in the repo today) — tracked as accepted debt in §11.
 
-**QG-2. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-2. Correct error-state mapping**
+- **When:** The backend returns `400 upload.invalid_format`, `413 upload.file_too_large`, `429 upload.rate_limited`, a 5xx, or the XHR reports a network failure/timeout.
+- **Then:** The user sees exactly one of four distinct plain-language messages (AC-02/03/04) — never raw backend error detail or a stack trace.
+- **How verify:** Unit tests on `src/ui/errors.ts` (vitest, matching repo convention) covering all documented backend codes plus the network/timeout case.
 
-**QG-3. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-3. Safe rendering of untrusted input**
+- **When:** A filename containing markup (e.g. `<script>...</script>`) is displayed on the result screen.
+- **Then:** It renders strictly as plain text — never executes, never interpreted as markup (AC-06).
+- **How verify:** Component test (vitest) asserting `UploadResult` renders a crafted filename as inert text content, with no `dangerouslySetInnerHTML` or raw DOM string insertion anywhere in the render path.
 
 ## 11. Risks and technical debt
 
