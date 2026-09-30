@@ -95,45 +95,41 @@ Each tactical decision in later sections should be traceable to one of these str
 
 ## 5. Building block view
 
-<!-- 🎯 Навіщо: ВНУТРІШНЯ ДЕКОМПОЗИЦІЯ — модулі, контейнери, БД. Статична топологія:   -->
-<!--           хто з ким може говорити. Без §5 §6 (сценарії) не має словника учасників. -->
-<!-- 📋 Що писати: 1 абзац про стиль (шари/гексагональна/clean/на подіях) +            -->
-<!--           дерево папок + Mermaid C4Container.                                       -->
-<!-- 📌 Приклад: «web-app, content-api, media-worker, postgres, s3, cdn».                -->
-
-<One paragraph: layered / hexagonal / clean / event-driven. Why.>
+A single client-side "module" that owns no business logic of its own — only rendering and the upload call. One top-level Preact component owns the state machine (`idle → uploading → success | error`) and renders one of three child components per state. A dedicated `upload-client.ts` wraps the XHR call (ADR-0003) and a dedicated `errors.ts` maps every backend `{code, message}` plus network/timeout failures to the plain-language text required by AC-02/03/04. It lives in a new top-level `src/ui/` directory, parallel to (not inside) `src/modules/`, because the existing routes/services/repositories convention (ADR-0004, stl-upload) is for backend business-logic modules — forcing UI code into that shape would create empty `services/`/`repositories/` folders with no real content. On the backend side, `app.ts` gains one small addition: registering `@fastify/static` to serve the built UI (ADR-0002) — plumbing, not a new business module.
 
 **Internal decomposition:**
 
 ```
-<e.g. internal/modules/goals/>
-├── domain/       <entities + sentinel errors>
-├── app/          <use cases / services>
-├── infra/        <repository + outbox impl>
-├── ports/        <HTTP handlers, DTOs, error mapping>
-└── module.go     <self-wiring>
+src/ui/
+├── main.tsx              <entry point, mounts App>
+├── app.tsx                <top-level Preact component: owns state-machine state>
+├── components/
+│   ├── UploadForm.tsx      <drag-drop + click-to-browse (AC-01b), single-file guard (AC-05)>
+│   ├── UploadProgress.tsx  <renders real byte-progress from upload-client.ts, ≥1 update/sec>
+│   └── UploadResult.tsx    <success/error display; filenames rendered as plain text only (AC-06)>
+├── upload-client.ts       <XHR wrapper — submit + progress + response/error mapping>
+└── errors.ts              <maps backend {code,message} + network/timeout → plain-language text>
+
+src/app.ts                 <existing Fastify app builder — gains @fastify/static registration for dist-ui/>
 ```
 
 **C4 Container (L2):**
 
 ```mermaid
 C4Container
-    title <system> — Containers
+    title stl-upload-ui — Containers
 
-    Person(user, "<User>")
+    Person(user, "User")
 
-    Container_Boundary(boundary, "<Our System>") {
-        Container(web, "<Web/API container>", "<technology>", "<purpose>")
-        Container(svc, "<Service container>", "<technology>", "<purpose>")
-        ContainerDb(db, "<DB>", "<technology>", "<purpose>")
+    Container_Boundary(boundary, "print-marketplace (single Fastify process)") {
+        Container(ui, "upload-ui", "Preact + TypeScript, static assets", "Renders form/uploading/result states, submits via XHR (ADR-0001, ADR-0003)")
+        Container(api, "stl-upload API", "Fastify + TypeScript", "Validates + stores STL files — existing, unchanged")
+        ContainerDb(fs, "Filesystem storage", "Local disk", "Stores validated STL files by file-id (ADR-0003 stl-upload)")
     }
 
-    System_Ext(ext, "<External>", "<purpose>")
-
-    Rel(user, web, "<interaction>", "<protocol>")
-    Rel(web, svc, "<service calls>")
-    Rel(svc, db, "<reads/writes>", "<driver>")
-    Rel(svc, ext, "<emits>", "<protocol>")
+    Rel(user, ui, "Loads page, drops/selects file, views result", "HTTPS")
+    Rel(ui, api, "POST /api/v1/uploads (multipart/form-data)", "HTTPS/XHR")
+    Rel(api, fs, "Writes/reads <file-id>.stl", "fs I/O")
 ```
 
 ## 6. Runtime view
