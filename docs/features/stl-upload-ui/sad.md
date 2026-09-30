@@ -85,17 +85,11 @@ C4Context
 
 ## 4. Solution strategy
 
-<!-- 🎯 Навіщо: 3-4 СТРАТЕГІЧНІ СТОВПИ, з яких потім ростуть усі ADR. Без §4 кожен ADR    -->
-<!--           виглядає випадковим — нема зонтика. ⭐ Найгустіша секція — тут ADR-gate    -->
-<!--           спрацьовує майже завжди (рішення незворотні + мульти-модульні).            -->
-<!-- 📋 Що писати: список з 3-4 виборів. На кожен — заголовок + 2-3 речення rationale.    -->
-<!-- 📌 Приклад: «Зберігати урок як таблицю блоків» — стовп, з якого виросло ADR-0001.    -->
-
 **Top-3 strategic choices (the seeds for ADRs):**
 
-1. **<e.g. Module isolation through events>** — <2-3 sentences rationale referencing Quality Goals and constraints>.
-2. **<e.g. Single-store persistence (Postgres)>** — <2-3 sentences>.
-3. **<e.g. Server-rendered dashboard>** — <2-3 sentences>.
+1. **Preact as the UI library (no full React, no zero-dependency vanilla)** — Middle ground between the repo's "boring technology" bias (CLAUDE.md) and PRD §2 Goal 3's requirement that the state machine extend to quote/order-confirmation screens later without a rewrite. See ADR-0001.
+2. **Fastify serves the UI's static assets (same-origin, single deployable)** — Avoids introducing CORS handling and new hosting infrastructure for a size-S, demo-driven feature; extends the co-located-deployment convention already established by ADR-0003 (stl-upload). See ADR-0002.
+3. **XMLHttpRequest (not `fetch()`) for the upload request** — The only option with standardized, broadly-supported byte-level upload progress events, required to satisfy PRD NFR §6 (≥1 progress update/sec) without violating the non-goal against fabricated/cosmetic progress. See ADR-0003.
 
 Each tactical decision in later sections should be traceable to one of these strategic seeds. Tactical decisions that *contradict* a strategic choice are red flags — surface them in §11 Risks.
 
@@ -220,8 +214,9 @@ sequenceDiagram
 
 | # | Title | Status | Section |
 |---|---|---|---|
-| <NNNN> | <imperative — e.g. "Use sliding window for rate limiting"> | Accepted | §<N> |
-| <NNNN> | <imperative — e.g. "Co-locate outbox worker in API process"> | Accepted | §<N> |
+| 0001 | Use Preact for upload-ui | Accepted | §4 |
+| 0002 | Serve upload-ui static assets from Fastify | Accepted | §4 |
+| 0003 | Use XMLHttpRequest for upload progress | Accepted | §4 |
 
 ADR files live under `docs/features/<slug>/adr/NNNN-<title>.md`.
 
