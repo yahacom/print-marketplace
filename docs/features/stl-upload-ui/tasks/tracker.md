@@ -18,7 +18,7 @@ ticket: "<TBD>"
 | T2  | [State machine shell](t2-state-machine-shell.md)               | Not started | —   | Yakiv Vakoliuk |
 | T3  | [UploadForm component](t3-upload-form.md)                      | Not started | —   | Yakiv Vakoliuk |
 | T4  | [upload-client.ts](t4-upload-client.md)                        | Not started | —   | Yakiv Vakoliuk |
-| T5  | [errors.ts](t5-errors-mapping.md)                              | Not started | —   | Yakiv Vakoliuk |
+| T5  | [errors.ts](t5-errors-mapping.md)                              | In review  | —   | Yakiv Vakoliuk |
 | T6  | [UploadProgress component](t6-upload-progress.md)              | Not started | —   | Yakiv Vakoliuk |
 | T7  | [UploadResult component](t7-upload-result.md)                  | Not started | —   | Yakiv Vakoliuk |
 | T8  | [Wire state machine end-to-end](t8-wire-state-machine.md)      | Not started | —   | Yakiv Vakoliuk |
