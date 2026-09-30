@@ -189,22 +189,14 @@ The feature reuses the existing single Fastify process/deployment unit (ADR-0002
 
 ## 8. Crosscutting concepts
 
-<!-- 🎯 Навіщо: НАСКРІЗНІ ПАТЕРНИ, які перетинають кілька модулів: логування, помилки,    -->
-<!--           авторизація, ID strategy, outbox, кеш. ⭐ Друга найгустіша секція.          -->
-<!--           Якщо патерн всередині одного модуля — він НЕ сюди. Якщо це конвенція        -->
-<!--           проєкту в цілому — у CLAUDE.md.                                              -->
-<!-- 📋 Що писати: таблиця концепт / конвенція / де визначено. Один рядок на концепт.      -->
-<!-- 📌 Приклад: «UUID v7 (час+випадковий, сортується) у app-layer» — як default з CLAUDE.md. -->
-
 | Concept | Convention | Where defined |
 |---|---|---|
-| Logging | <e.g. structured slog, fields `module=<name>`> | <CLAUDE.md §X or here> |
-| Authentication | <e.g. JWT via session middleware> | <CLAUDE.md §X> |
-| Error handling | <e.g. domain sentinel → ports/errors.go → apperr JSON> | <CLAUDE.md §X> |
-| ID strategy | <e.g. UUID v7 in app layer> | <CLAUDE.md §X> |
-| Internationalisation | <e.g. N/A, English only> | — |
-| Observability | <e.g. OpenTelemetry on HTTP boundaries> | — |
-| Outbox / events | <module-specific patterns, if any> | <here> |
+| Logging | N/A — feature adds no server-side logic; browser console only, dev-time | — |
+| Error handling / mapping | Central module maps backend `{code,message}` + network/timeout → plain-language text; never surfaces raw backend detail | `src/ui/errors.ts` (§5) |
+| Output encoding (XSS) | Filenames render via Preact's default text-node escaping (JSX text interpolation) — never `dangerouslySetInnerHTML` or raw DOM string insertion | `src/ui/components/UploadResult.tsx` (AC-06, hard requirement per PRD §6.1) |
+| ID strategy | N/A — no new IDs generated client-side; `file_id` is returned by backend (UUID v4, ADR-0005 stl-upload) | — |
+| Internationalisation | N/A, English only (matches stl-upload backend scope) | — |
+| Observability | Client-side only: `performance.now()` timestamps for NFR verification (§7); no new server telemetry | — |
 
 ## 9. Architecture decisions
 
