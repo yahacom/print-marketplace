@@ -12,20 +12,20 @@ ticket: "<TBD>"
 
 <!-- Stage 13 → see sdlc/plugin/skills/break-tasks/SKILL.md. Update status as tasks move. -->
 
-| ID  | Title                                                              | Status      | PR  | Owner          |
-| --- | ------------------------------------------------------------------ | ----------- | --- | -------------- |
-| T1  | [Project scaffold + module skeleton](t1-project-scaffold.md)       | done        | —   | Yakiv Vakoliuk |
-| T2  | [File-id generator](t2-file-id-generator.md)                       | done        | —   | Yakiv Vakoliuk |
-| T5  | [Filesystem repository](t5-filesystem-repository.md)               | done        | —   | Yakiv Vakoliuk |
-| T6  | [Upload service orchestration](t6-upload-service-orchestration.md) | done        | —   | Yakiv Vakoliuk |
-| T7  | [Upload HTTP route](t7-upload-http-route.md)                       | done        | —   | Yakiv Vakoliuk |
-| T8  | [Rate limiting middleware](t8-rate-limiting-middleware.md)         | done        | —   | Yakiv Vakoliuk |
-| T9  | [Structured logging + request_id](t9-structured-logging.md)        | done        | —   | Yakiv Vakoliuk |
-| T10 | [Contract/integration tests](t10-contract-integration-tests.md)    | done        | —   | Yakiv Vakoliuk |
-| T13 | [k6 smoke test](t13-k6-smoke-test.md)                              | done        | —   | Yakiv Vakoliuk |
-| T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)     | done        | —   | Yakiv Vakoliuk |
-| T15 | [Security review sign-off](t15-security-review-signoff.md)         | done        | —   | Security Lead  |
-| T16 | [CHANGELOG + KB note](t16-changelog-kb-note.md)                    | In review   | —   | Yakiv Vakoliuk |
+| ID  | Title                                                              | Status | PR  | Owner          |
+| --- | ------------------------------------------------------------------ | ------ | --- | -------------- |
+| T1  | [Project scaffold + module skeleton](t1-project-scaffold.md)       | done   | —   | Yakiv Vakoliuk |
+| T2  | [File-id generator](t2-file-id-generator.md)                       | done   | —   | Yakiv Vakoliuk |
+| T5  | [Filesystem repository](t5-filesystem-repository.md)               | done   | —   | Yakiv Vakoliuk |
+| T6  | [Upload service orchestration](t6-upload-service-orchestration.md) | done   | —   | Yakiv Vakoliuk |
+| T7  | [Upload HTTP route](t7-upload-http-route.md)                       | done   | —   | Yakiv Vakoliuk |
+| T8  | [Rate limiting middleware](t8-rate-limiting-middleware.md)         | done   | —   | Yakiv Vakoliuk |
+| T9  | [Structured logging + request_id](t9-structured-logging.md)        | done   | —   | Yakiv Vakoliuk |
+| T10 | [Contract/integration tests](t10-contract-integration-tests.md)    | done   | —   | Yakiv Vakoliuk |
+| T13 | [k6 smoke test](t13-k6-smoke-test.md)                              | done   | —   | Yakiv Vakoliuk |
+| T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)     | done   | —   | Yakiv Vakoliuk |
+| T15 | [Security review sign-off](t15-security-review-signoff.md)         | done   | —   | Security Lead  |
+| T16 | [CHANGELOG + KB note](t16-changelog-kb-note.md)                    | done   | —   | Yakiv Vakoliuk |
 
 ## Status legend
 
