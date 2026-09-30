@@ -134,32 +134,52 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- 🎯 Навіщо: ПОТІК У RUNTIME для 1-2 критичних сценаріїв. Хто з ким коли і у якому     -->
-<!--           порядку говорить. Без §6 §5 — лише купа коробок без життя.                  -->
-<!-- 📋 Що писати: Mermaid sequenceDiagram. Учасники — імена з §5 (не вигадуй нові!).      -->
-<!--           Повідомлення семантичні («складає чорновик»), БЕЗ HTTP-методів/шляхів —     -->
-<!--           ендпоінт-рівневі sequence-діаграми зʼявляться у stage 06 (define-api).      -->
-<!-- 📌 Приклад: «methodist → web-app: складає чорновик → web-app → content-api: зберегти». -->
-
-**Critical flow 1: <flow name>**
+**Critical flow 1: Happy path — valid STL accepted (AC-01)**
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant API
-    participant Service
-    participant DB
-    User->>API: <request>
-    API->>Service: <call>
-    Service->>DB: <write tx>
-    DB-->>Service: ok
-    Service-->>API: result
-    API-->>User: 201
+    participant upload-ui
+    participant stl-upload API
+
+    User->>upload-ui: Drops/selects one valid STL file
+    upload-ui->>upload-ui: Client-side pre-check (single file, ≤50MB)
+    upload-ui->>stl-upload API: POST /api/v1/uploads (multipart/form-data)
+    stl-upload API-->>upload-ui: 201 {file_id, status: "valid"}
+    upload-ui->>upload-ui: Update progress ≥1/sec during transfer (XHR onprogress)
+    upload-ui-->>User: Shows confirmation — accepted, ready for quote (AC-08)
 ```
 
-<!-- For XS/S: 1 flow above is enough. For M+: add 2-4 more (e.g. failure-mode flow, async flow). -->
+**Critical flow 2: Backend rejects the file — invalid format or too large (AC-02, AC-03)**
 
-**Critical flow 2: <e.g. async event propagation>** — <if applicable, otherwise N/A>.
+```mermaid
+sequenceDiagram
+    actor User
+    participant upload-ui
+    participant stl-upload API
+
+    User->>upload-ui: Drops/selects a file
+    upload-ui->>upload-ui: Client-side pre-check passes (single file, ≤50MB)
+    upload-ui->>stl-upload API: POST /api/v1/uploads (multipart/form-data)
+    stl-upload API-->>upload-ui: 400 {code: "upload.invalid_format"} OR 413 {code: "upload.file_too_large"}
+    upload-ui->>upload-ui: Map error code to distinct plain-language message (errors.ts)
+    upload-ui-->>User: Shows rejection reason — never raw backend detail
+```
+
+**Critical flow 3: Connection lost mid-upload (AC-04)**
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant upload-ui
+    participant stl-upload API
+
+    User->>upload-ui: Drops/selects a valid file
+    upload-ui->>stl-upload API: POST /api/v1/uploads (multipart/form-data)
+    stl-upload API--xupload-ui: Connection drops / unreachable (XHR onerror or timeout)
+    upload-ui->>upload-ui: Map network failure to distinct "can't reach server" message
+    upload-ui-->>User: Shows unreachable-server message — stops showing progress, offers retry
+```
 
 ## 7. Deployment view
 
