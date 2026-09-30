@@ -234,25 +234,14 @@ Each top-3 goal from §1 expanded into a full scenario:
 
 ## 11. Risks and technical debt
 
-<!-- 🎯 Навіщо: ⭐ збирає ВСЕ, що може зламатись — і не лише технічне. Без §11 ризики   -->
-<!--           обговорюються на стендапах і губляться; борг лишається у голові того,    -->
-<!--           хто його прийняв.                                                          -->
-<!-- 📋 Що писати: таблиця ризик/борг — серйозність — мітигація — власник. Технічний    -->
-<!--           борг окремою секцією.                                                      -->
-<!-- 📌 Приклад: «EM не пушить — member не оновлює дані | High | …». Перший ризик —      -->
-<!--           часто продуктовий, не технічний. Це нормально.                            -->
-
-<!-- Severity column literals: Low / Medium / High for regular risks; "Open question" for rows
-     created by Step-7 `Save as Open Question` resolutions (see references/socratic-loop.md). -->
-
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| <e.g. Outbox lag may reach hours during downstream outage> | Medium | <Alert >10 min, on-call playbook, retry backoff> | <DevOps> |
-| <e.g. No event schema versioning in v1> | Medium | <ADR-NNNN planned for v2, graceful handling of unknown fields> | <Backend> |
-| Open architectural decision: <decision-headline> | Open question | Resolve before <stage trigger or YYYY-MM-DD>; <inline rationale from Step-7 Save-as-OQ> | <owner> |
+| No demo date committed yet (PRD §8) — NFR/deployment decisions in this SAD assume a near-term demo but the date isn't fixed | Medium | Set the exact date; re-confirm NFR targets still hold once it's known | Yakiv Vakoliuk |
+| Root `CLAUDE.md` is stale — still says "no application code exists yet, only planning docs," despite a full Fastify/TS backend and now this UI landing | Low | Update `CLAUDE.md` once `stl-upload-ui` code merges, to reflect real build/lint/test commands and architecture | Whoever implements stl-upload-ui |
 
 **Accepted debt (acceptable in v1, plan to fix later):**
-- <e.g. Goal entity is not versioned (immutable) — OK for v1, may need audit versioning in v2>
+- No automated browser-perf test verifies QG-1 (time-to-first-feedback, progress rate, p95 latency) — verified manually via `performance.now()` timestamps in a pre-demo checklist instead. Adding a browser-test tool (e.g. Playwright) for one NFR would be a new dependency beyond this feature's scope.
+- ADR-0002 couples the UI's and API's release cycles (same Fastify process/deployment unit) — a UI-only change still requires redeploying the whole service. Acceptable for a size-S, single-consumer feature; revisit if the UI grows independent release cadence needs.
 
 ## 12. Glossary
 
