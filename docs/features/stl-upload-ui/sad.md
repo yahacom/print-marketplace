@@ -245,14 +245,11 @@ Each top-3 goal from §1 expanded into a full scenario:
 
 ## 12. Glossary
 
-<!-- 🎯 Навіщо: ⭐ СЛОВНИК ДОМЕНУ, який припиняє суперечки через рік («checkpoint —      -->
-<!--           weekly чи biweekly? Quarter — календарний чи фіскальний?»).                -->
-<!-- 📋 Що писати: таблиця термін / значення. Бізнес-терміни + технічні вперемішку.       -->
-<!--           Один термін може мати дві мови у заголовку: «Goal (Обʼєктив)».              -->
-<!-- 📌 Приклад: «Lesson | урок усередині курсу, що складається з блоків (text, video)». -->
+<!-- No CONTEXT.md exists in this repo — terms below are extracted from PRD + this SAD body; flagged for sdlc:fix-term follow-up. -->
 
 | Term | Meaning |
 |---|---|
-| <e.g. Goal> | <quarterly intent in statement form> |
-| <e.g. KR> | <Key Result — measurable target linked to a Goal> |
-| <e.g. Checkpoint> | <bi-weekly progress update on a KR> |
+| STL | The 3D-model file format a user uploads; the marketplace funnel's entry point |
+| `file_id` | UUID v4 identifier returned by the backend on a successful upload; sole access-control mechanism in v1 — no accounts (ADR-0005, stl-upload) |
+| Upload state machine | The `idle → uploading → success \| error` state that determines which of `UploadForm` / `UploadProgress` / `UploadResult` renders (§5) |
+| Plain-language error mapping | The rule (AC-02/03/04, §5 `errors.ts`) that every backend or network failure surfaces as one of a fixed set of user-readable messages, never raw backend detail |
