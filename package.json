@@ -8,18 +8,21 @@
   },
   "scripts": {
     "build": "tsc",
+    "build:ui": "rm -rf dist-ui && esbuild src/ui/main.tsx --bundle --minify --format=esm --target=es2022 --tsconfig=tsconfig.ui.json --outdir=dist-ui && cp src/ui/index.html dist-ui/index.html",
     "start": "tsx src/main.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.ui.json",
     "lint": "eslint .",
     "test": "vitest run"
   },
   "dependencies": {
     "@fastify/multipart": "^10.1.2",
-    "fastify": "^5.12.5"
+    "fastify": "^5.12.5",
+    "preact": "^11.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.3",
+    "esbuild": "^0.28.2",
     "eslint": "^10.11.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",

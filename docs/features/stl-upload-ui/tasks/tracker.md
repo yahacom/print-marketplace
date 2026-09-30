@@ -14,7 +14,7 @@ ticket: "<TBD>"
 
 | ID  | Title                                                        | Status      | PR  | Owner          |
 | --- | ------------------------------------------------------------- | ----------- | --- | -------------- |
-| T1  | [UI build tooling scaffold](t1-ui-build-tooling.md)            | Not started | —   | Yakiv Vakoliuk |
+| T1  | [UI build tooling scaffold](t1-ui-build-tooling.md)            | In review   | —   | Yakiv Vakoliuk |
 | T2  | [State machine shell](t2-state-machine-shell.md)               | Not started | —   | Yakiv Vakoliuk |
 | T3  | [UploadForm component](t3-upload-form.md)                      | Not started | —   | Yakiv Vakoliuk |
 | T4  | [upload-client.ts](t4-upload-client.md)                        | Not started | —   | Yakiv Vakoliuk |
