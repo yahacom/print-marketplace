@@ -40,29 +40,23 @@ ticket: "<TBD>"
 
 ## 2. Constraints
 
-<!-- 🎯 Навіщо: §4 (стратегія) працює тільки коли §2 зафіксувала, ЩО ВЖЕ ЗАФІКСОВАНО:    -->
-<!--           стек, версії, дедлайн, регуляторні вимоги. Це вхід, не вихід.             -->
-<!-- 📋 Що писати: чотири блоки — Технічні / Організаційні / Конвенції / Регуляторні.     -->
-<!-- 📌 Приклад: «Postgres 18» (не «Postgres»); «дедлайн Q3 — жорсткий» (не «бажано»).    -->
-
 **Technical.**
-- <Language + version, e.g. Go 1.26>
-- <Framework + version, e.g. chi v5.1, pgx v5.7>
-- <Datastore + version, e.g. Postgres 18>
-- <Architecture convention, e.g. hexagonal per CLAUDE.md>
+- Node.js ≥20, TypeScript ^6.0.3 (target ES2022, module/moduleResolution NodeNext, strict + noUncheckedIndexedAccess)
+- Backend: Fastify ^5.12.5 + @fastify/multipart ^10.1.2 (existing `stl-upload` module, unchanged by this feature)
+- No frontend framework/bundler exists anywhere in the repo — this feature is the first UI code. Frontend tooling choice is decided in §4 (PRD §8 explicitly defers it to architecture-design).
+- Architecture convention: sibling `stl-upload` module follows a simple layered style (routes/ → services/ → repositories/, ADR-0004) — applies to backend modules; not assumed to apply verbatim to a client-side page.
 
 **Organisational.**
-- <Effort budget, e.g. 3 person-weeks>
-- <Deadline, e.g. 2026-Q3 hard>
-- <Team composition, e.g. 1 backend + 0.5 frontend>
+- No committed deadline — PRD §8 flags "exact demo date: none set yet" as still open (tracked as a risk in §11).
+- Effort budget and team composition not quoted in PRD.
 
 **Conventions.**
-- <Link to CLAUDE.md or project conventions>
-- <Naming, ID strategy, error-handling pattern>
+- Root `CLAUDE.md` documents build/lint/test conventions (`npm run build`=tsc, `lint`=eslint, `test`=vitest) but is stale on project state (still says "no code exists yet, only planning docs") — flagged, correction out of scope for this skill.
 
 **Regulatory / external.**
-- <e.g. GDPR — user deletion behavior per ADR-NNNN>
-- <e.g. SOC2, PCI — applicable controls>
+- Data classification: internal (PRD §6.1) — filenames/bytes pass through, no new data at rest in the UI itself.
+- No PII, no new authn/authz surface (MVP-wide no-auth exclusion).
+- Abuse cases carried from PRD §6.1: filename-rendering XSS (AC-06), multi-file/folder bypass (AC-05), raw backend error leakage, rate-limit surfacing.
 
 ## 3. Context and scope
 
