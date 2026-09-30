@@ -60,34 +60,27 @@ ticket: "<TBD>"
 
 ## 3. Context and scope
 
-<!-- 🎯 Навіщо: малює КОРДОН СИСТЕМИ — хто з нею говорить ззовні, де закінчується зона довіри. -->
-<!--           Без §3 §5 і §8 (авторизація) розпливаються — неясно, що «всередині», а що «зовні». -->
-<!-- 📋 Що писати: 2-3 речення бізнес-контексту + таблиця зовнішніх систем + Mermaid C4Context. -->
-<!-- 📌 Приклад: «зовнішні — нема (свідома відмова від third-party у v1)» — це теж рішення.   -->
-<!-- Кордон довіри (trust boundary) — лінія, за якою ти не довіряєш даним без перевірки.       -->
-
-<Business context in 2-3 sentences. What the system does for whom.>
+The `stl-upload-ui` page is the only browser-facing entry point to the marketplace's upload step. It lets a user pick or drop a single STL file and shows a synchronous result (accepted, or a plain-language rejection reason) by calling the existing `stl-upload` backend's single endpoint. It has no server-side component of its own beyond static hosting/serving — no new backend logic, no data store.
 
 **External systems (in / out):**
 
 | Actor or system | Type | Interaction |
 |---|---|---|
-| <e.g. IC> | Person | Creates goals, adds checkpoints |
-| <e.g. notification-service> | System (internal) | Receives cron registration |
-| <e.g. Identity Provider> | System (external) | Provides JWT tokens |
+| User | Person | Selects/drops one STL file, views the result |
+| `stl-upload` backend (`POST /api/v1/uploads`) | System (internal, existing) | Receives multipart upload, returns `{file_id, status}` or a `{code, message}` error |
 
 **C4 Context (L1):**
 
 ```mermaid
 C4Context
-    title <system> — System Context
+    title stl-upload-ui — System Context
 
-    Person(user, "<User>", "<role + intent>")
-    System(system, "<Our System>", "<one-sentence description>")
-    System_Ext(ext, "<External system>", "<one-sentence description>")
+    Person(user, "User", "Uploads an STL model to get it ready for a quote")
+    System(system, "stl-upload-ui", "Browser upload page: form -> uploading -> result state machine")
+    System_Ext(backend, "stl-upload backend", "Existing Fastify API that validates + stores STL files, unchanged by this feature")
 
-    Rel(user, system, "<interaction>", "<protocol>")
-    Rel(system, ext, "<interaction>", "<protocol>")
+    Rel(user, system, "Selects/drops STL file, views result", "HTTPS/Browser")
+    Rel(system, backend, "Submits file, receives outcome", "HTTPS multipart/form-data")
 ```
 
 ## 4. Solution strategy
