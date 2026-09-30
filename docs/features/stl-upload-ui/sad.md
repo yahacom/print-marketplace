@@ -191,6 +191,7 @@ The feature reuses the existing single Fastify process/deployment unit (ADR-0002
 
 | Concept | Convention | Where defined |
 |---|---|---|
+| Authorization (AC-07) | Result screen renders only the response of the just-completed XHR request — never a fetch-by-id or route accepting a `file_id` parameter, neither in the UI nor added to the API. There is structurally no way to look up another user's submission. | `src/ui/components/UploadResult.tsx` (§5) |
 | Logging | N/A — feature adds no server-side logic; browser console only, dev-time | — |
 | Error handling / mapping | Central module maps backend `{code,message}` + network/timeout → plain-language text; never surfaces raw backend detail | `src/ui/errors.ts` (§5) |
 | Output encoding (XSS) | Filenames render via Preact's default text-node escaping (JSX text interpolation) — never `dangerouslySetInnerHTML` or raw DOM string insertion | `src/ui/components/UploadResult.tsx` (AC-06, hard requirement per PRD §6.1) |
