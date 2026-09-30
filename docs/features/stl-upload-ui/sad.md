@@ -21,26 +21,22 @@ ticket: "<TBD>"
 
 ## 1. Introduction and goals
 
-<!-- 🎯 Навіщо: стабільна памʼять про «що + три головні якості + хто зацікавлений».     -->
-<!--           Через рік ніхто не згадає на словах, ЯКІ ТРИ ЯКОСТІ для системи критичні. -->
-<!-- 📋 Що писати: 1 абзац intent + 3 рядки топ-3 якості + таблиця stakeholders.        -->
-<!-- 📌 Приклад: «QG-1: швидкість редагування блоку p95 ≤500 мс»                         -->
-
-**Intent.** <One paragraph from PRD §Goals — what we're building and for whom.>
+**Intent.** Give non-technical users (the stakeholder/investor watching the upcoming demo, plus early testers) a browser-based front door to the already-shipped `stl-upload` backend — today the only way to invoke it is curl/Postman. The page is a state machine (form → uploading → result) with plain-language, per-error-code messaging; quote/order-confirmation states are out of scope until their backends exist.
 
 **Top-3 quality goals (1-liners; full scenarios in §10):**
 
-1. <e.g. "Availability under partial failure of downstream module">
-2. <e.g. "Performance for EM dashboard under team-scale growth">
-3. <e.g. "Recoverability of checkpoints with <30 min RTO">
+1. Fast, honest feedback — time-to-first-visible-feedback ≤2000ms, progress ≥1 update/sec (demo-critical; this is the funnel's entry point).
+2. Correct error-state mapping — every backend failure (format/size/rate-limit/network) maps to a distinct, plain-language message, never raw backend detail.
+3. Safe rendering of untrusted input — filenames render strictly as plain text, never markup (AC-06, hard requirement, not optional hardening).
 
 **Stakeholders.**
 
 | Role | Interest | Sign-off owner? |
 |---|---|---|
-| <e.g. IC> | <feature usage> | No |
-| <e.g. EM> | <dashboard reads> | No |
-| <e.g. Tech Lead> | <SAD approval> | Yes |
+| User | Uploads an STL, needs a synchronous yes/no without dev help | No |
+| Tech Lead | SAD approval; fit with existing Fastify/TS backend conventions | Yes |
+| Security Lead | Reviews XSS/filename-rendering hardening (AC-06) + abuse cases | No |
+| Yakiv Vakoliuk (PM/owner) | Demo readiness — 100% of upload step demoable by demo date | No |
 
 ## 2. Constraints
 
