@@ -15,14 +15,14 @@ ticket: "<TBD>"
 | ID  | Title                                                     | Status      | PR  | Owner          |
 | --- | --------------------------------------------------------- | ----------- | --- | -------------- |
 | T1  | [UI build tooling scaffold](t1-ui-build-tooling.md)       | done        | —   | Yakiv Vakoliuk |
-| T2  | [State machine shell](t2-state-machine-shell.md)          | In review  | —   | Yakiv Vakoliuk |
-| T3  | [UploadForm component](t3-upload-form.md)                 | Not started | —   | Yakiv Vakoliuk |
-| T4  | [upload-client.ts](t4-upload-client.md)                   | In review   | —   | Yakiv Vakoliuk |
+| T2  | [State machine shell](t2-state-machine-shell.md)          | done        | —   | Yakiv Vakoliuk |
+| T3  | [UploadForm component](t3-upload-form.md)                 | In review   | —   | Yakiv Vakoliuk |
+| T4  | [upload-client.ts](t4-upload-client.md)                   | done        | —   | Yakiv Vakoliuk |
 | T5  | [errors.ts](t5-errors-mapping.md)                         | done        | —   | Yakiv Vakoliuk |
 | T6  | [UploadProgress component](t6-upload-progress.md)         | Not started | —   | Yakiv Vakoliuk |
 | T7  | [UploadResult component](t7-upload-result.md)             | Not started | —   | Yakiv Vakoliuk |
 | T8  | [Wire state machine end-to-end](t8-wire-state-machine.md) | Not started | —   | Yakiv Vakoliuk |
-| T9  | [Fastify static serving](t9-fastify-static.md)            | In review   | —   | Yakiv Vakoliuk |
+| T9  | [Fastify static serving](t9-fastify-static.md)            | done        | —   | Yakiv Vakoliuk |
 | T10 | [NFR verification checklist](t10-nfr-verification.md)     | Not started | —   | Yakiv Vakoliuk |
 | T11 | [Security review sign-off](t11-security-review.md)        | Not started | —   | Security Lead  |
 | T12 | [CHANGELOG + KB note](t12-changelog-kb-note.md)           | Not started | —   | Yakiv Vakoliuk |
