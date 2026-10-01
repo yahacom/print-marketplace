@@ -76,6 +76,15 @@ describe("UploadForm", () => {
     expect(text).not.toContain("Only one model");
   });
 
+  it("rejects a dropped non-STL file client-side without calling onFileSelected", async () => {
+    const onFileSelected = renderForm();
+    drop([stlFile("model.obj")]);
+    await flush();
+    expect(onFileSelected).not.toHaveBeenCalled();
+    const text = container.querySelector("[role=alert]")?.textContent;
+    expect(text).toContain("couldn't accept this file as an STL");
+  });
+
   it("opens the file picker when the Upload button is clicked", () => {
     renderForm();
     const input = container.querySelector("input[type=file]") as HTMLInputElement;

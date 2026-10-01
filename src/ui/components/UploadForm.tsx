@@ -8,13 +8,19 @@ export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 
 const MULTIPLE_FILES_TEXT = "Only one model can be uploaded at a time. Please choose a single STL file.";
 const FILE_TOO_LARGE_TEXT = "This file is too large to upload. Please choose a smaller STL file.";
+const INVALID_FORMAT_TEXT = "We couldn't accept this file as an STL. Please check the file and try again.";
 
-type Rejection = "multiple" | "too_large";
+type Rejection = "multiple" | "too_large" | "invalid_format";
 
 const REJECTION_TEXT: Record<Rejection, string> = {
   multiple: MULTIPLE_FILES_TEXT,
   too_large: FILE_TOO_LARGE_TEXT,
+  invalid_format: INVALID_FORMAT_TEXT,
 };
+
+function hasStlExtension(filename: string): boolean {
+  return filename.toLowerCase().endsWith(".stl");
+}
 
 // A dropped folder surfaces as a directory entry (or as a file-less item), so it counts as "not one file".
 function containsDirectory(items: DataTransferItemList | undefined): boolean {
@@ -39,6 +45,10 @@ export function UploadForm({ onFileSelected, progress, failure }: UploadFormProp
     const file = files[0];
     if (hasDirectory || files.length !== 1 || !file) {
       setRejection("multiple");
+      return;
+    }
+    if (!hasStlExtension(file.name)) {
+      setRejection("invalid_format");
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
