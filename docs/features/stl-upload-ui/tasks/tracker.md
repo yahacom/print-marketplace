@@ -17,7 +17,7 @@ ticket: "<TBD>"
 | T1  | [UI build tooling scaffold](t1-ui-build-tooling.md)       | done        | —   | Yakiv Vakoliuk |
 | T2  | [State machine shell](t2-state-machine-shell.md)          | In review  | —   | Yakiv Vakoliuk |
 | T3  | [UploadForm component](t3-upload-form.md)                 | Not started | —   | Yakiv Vakoliuk |
-| T4  | [upload-client.ts](t4-upload-client.md)                   | Not started | —   | Yakiv Vakoliuk |
+| T4  | [upload-client.ts](t4-upload-client.md)                   | In review   | —   | Yakiv Vakoliuk |
 | T5  | [errors.ts](t5-errors-mapping.md)                         | done        | —   | Yakiv Vakoliuk |
 | T6  | [UploadProgress component](t6-upload-progress.md)         | Not started | —   | Yakiv Vakoliuk |
 | T7  | [UploadResult component](t7-upload-result.md)             | Not started | —   | Yakiv Vakoliuk |
