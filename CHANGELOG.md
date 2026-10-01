@@ -1,5 +1,20 @@
 # Changelog
 
+## [Unreleased] - stl-upload-ui
+
+### Added
+
+- Browser upload UI (Preact + TypeScript, built with esbuild into `dist-ui/`) served at `/` by the existing Fastify process via `@fastify/static`.
+- Drag-and-drop or click-to-browse STL selection with client-side single-file / no-folder guards.
+- Real byte-level upload progress (XHR), and a success or error result screen. Filenames are rendered as plain text only.
+- Plain-language error messages for `upload.invalid_format`, `upload.file_too_large`, `upload.rate_limited`, unrecognized server errors, and network/timeout failures. The raw backend `message` is never shown.
+- `npm run build:ui`; `npm run typecheck` now also checks `src/ui/` via `tsconfig.ui.json`.
+- NFR verification checklist and a KB note on extending the UI state machine: `docs/features/stl-upload-ui/`.
+
+### Notes
+
+- Run `npm run build:ui` before `npm start`; the UI is served from `dist-ui/`, which is not committed.
+
 ## [0.1.0] - stl-upload first release
 
 ### Added

@@ -23,9 +23,9 @@ ticket: "<TBD>"
 | T7  | [UploadResult component](t7-upload-result.md)             | done        | —   | Yakiv Vakoliuk |
 | T8  | [Wire state machine end-to-end](t8-wire-state-machine.md) | done        | —   | Yakiv Vakoliuk |
 | T9  | [Fastify static serving](t9-fastify-static.md)            | done        | —   | Yakiv Vakoliuk |
-| T10 | [NFR verification checklist](t10-nfr-verification.md)     | In progress | —   | Yakiv Vakoliuk |
-| T11 | [Security review sign-off](t11-security-review.md)        | Not started | —   | Security Lead  |
-| T12 | [CHANGELOG + KB note](t12-changelog-kb-note.md)           | Not started | —   | Yakiv Vakoliuk |
+| T10 | [NFR verification checklist](t10-nfr-verification.md)     | done        | —   | Yakiv Vakoliuk |
+| T11 | [Security review sign-off](t11-security-review.md)        | done        | —   | Security Lead  |
+| T12 | [CHANGELOG + KB note](t12-changelog-kb-note.md)           | done        | —   | Yakiv Vakoliuk |
 
 ## Status legend
 
