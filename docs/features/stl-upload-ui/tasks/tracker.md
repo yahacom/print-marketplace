@@ -19,7 +19,7 @@ ticket: "<TBD>"
 | T3  | [UploadForm component](t3-upload-form.md)                 | In review   | —   | Yakiv Vakoliuk |
 | T4  | [upload-client.ts](t4-upload-client.md)                   | done        | —   | Yakiv Vakoliuk |
 | T5  | [errors.ts](t5-errors-mapping.md)                         | done        | —   | Yakiv Vakoliuk |
-| T6  | [UploadProgress component](t6-upload-progress.md)         | Not started | —   | Yakiv Vakoliuk |
+| T6  | [UploadProgress component](t6-upload-progress.md)         | In review   | —   | Yakiv Vakoliuk |
 | T7  | [UploadResult component](t7-upload-result.md)             | Not started | —   | Yakiv Vakoliuk |
 | T8  | [Wire state machine end-to-end](t8-wire-state-machine.md) | Not started | —   | Yakiv Vakoliuk |
 | T9  | [Fastify static serving](t9-fastify-static.md)            | done        | —   | Yakiv Vakoliuk |
