@@ -1,4 +1,7 @@
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
+import type { UploadFailure } from "../errors.js";
+import type { UploadProgressEvent } from "../upload-client.js";
+import { UploadResult } from "./UploadResult.js";
 
 // Mirrors the backend limit (MAX_UPLOAD_BYTES in upload-routes.ts); checked here to avoid a doomed upload.
 export const MAX_FILE_BYTES = 50 * 1024 * 1024;
@@ -18,8 +21,19 @@ function containsDirectory(items: DataTransferItemList | undefined): boolean {
   return [...(items ?? [])].some((item) => item.webkitGetAsEntry?.()?.isDirectory === true);
 }
 
-export function UploadForm({ onFileSelected }: { onFileSelected: (file: File) => void }) {
+interface UploadFormProps {
+  onFileSelected: (file: File) => void;
+  // Present only while an upload is in flight: disables the controls and drives the button fill.
+  progress?: UploadProgressEvent;
+  // The last upload's failure; the controls stay enabled so the user can pick another file.
+  failure?: UploadFailure;
+}
+
+export function UploadForm({ onFileSelected, progress, failure }: UploadFormProps) {
   const [rejection, setRejection] = useState<Rejection | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const uploading = progress !== undefined;
 
   function handleFiles(files: ArrayLike<File>, hasDirectory: boolean) {
     const file = files[0];
@@ -35,24 +49,35 @@ export function UploadForm({ onFileSelected }: { onFileSelected: (file: File) =>
     onFileSelected(file);
   }
 
+  const fillPercent = progress ? Math.min(100, (progress.loaded / progress.total) * 100) : 0;
+
   return (
     <section data-testid="upload-form">
       <div
         data-testid="drop-zone"
-        onDragOver={(event) => event.preventDefault()}
+        class={dragging ? "drop-zone--active" : undefined}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
         onDrop={(event) => {
           event.preventDefault();
+          setDragging(false);
           const transfer = event.dataTransfer;
-          if (transfer) {
+          if (transfer && !uploading) {
             handleFiles(transfer.files, containsDirectory(transfer.items));
           }
         }}
       >
-        <p>Drag and drop an STL file here, or</p>
+        <p class="drop-zone__hint">Drag and drop an STL file here, or</p>
         <input
           type="file"
           accept=".stl"
           aria-label="Choose an STL file"
+          hidden
+          ref={inputRef}
+          disabled={uploading}
           onChange={(event) => {
             const input = event.currentTarget;
             handleFiles(input.files ?? [], false);
@@ -60,8 +85,28 @@ export function UploadForm({ onFileSelected }: { onFileSelected: (file: File) =>
             input.value = "";
           }}
         />
+        <button
+          type="button"
+          class="button"
+          data-testid="upload-button"
+          disabled={uploading}
+          onClick={() => inputRef.current?.click()}
+        >
+          {uploading && (
+            <span
+              class="button__fill"
+              data-testid="upload-button-fill"
+              style={{ width: `${fillPercent}%` }}
+            />
+          )}
+          <span class="button__label">{uploading ? "Uploading..." : "Upload"}</span>
+        </button>
       </div>
-      {rejection && <p role="alert">{REJECTION_TEXT[rejection]}</p>}
+      <div class="upload-status">
+        {uploading && <p role="status">Uploading your model. Please keep this page open.</p>}
+        {!uploading && rejection && <p role="alert">{REJECTION_TEXT[rejection]}</p>}
+        {!uploading && !rejection && failure && <UploadResult outcome="error" failure={failure} />}
+      </div>
     </section>
   );
 }

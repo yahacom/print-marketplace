@@ -75,4 +75,31 @@ describe("UploadForm", () => {
     expect(text).toContain("too large");
     expect(text).not.toContain("Only one model");
   });
+
+  it("opens the file picker when the Upload button is clicked", () => {
+    renderForm();
+    const input = container.querySelector("input[type=file]") as HTMLInputElement;
+    const click = vi.spyOn(input, "click");
+    (container.querySelector("[data-testid=upload-button]") as HTMLButtonElement).click();
+    expect(click).toHaveBeenCalledOnce();
+  });
+
+  it("ignores drops while an upload is in flight", async () => {
+    const onFileSelected = vi.fn();
+    render(<UploadForm onFileSelected={onFileSelected} progress={{ loaded: 1, total: 2 }} />, container);
+    drop([stlFile()]);
+    await flush();
+    expect(onFileSelected).not.toHaveBeenCalled();
+  });
+
+  it("highlights the drop zone on dragover and clears it on dragleave", async () => {
+    renderForm();
+    const zone = container.querySelector("[data-testid=drop-zone]") as HTMLElement;
+    zone.dispatchEvent(new Event("dragover", { bubbles: true, cancelable: true }));
+    await flush();
+    expect(zone.classList.contains("drop-zone--active")).toBe(true);
+    zone.dispatchEvent(new Event("dragleave", { bubbles: true }));
+    await flush();
+    expect(zone.classList.contains("drop-zone--active")).toBe(false);
+  });
 });

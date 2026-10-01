@@ -26,6 +26,7 @@ ticket: "<TBD>"
 | T10 | [NFR verification checklist](t10-nfr-verification.md)     | done        | —   | Yakiv Vakoliuk |
 | T11 | [Security review sign-off](t11-security-review.md)        | done        | —   | Security Lead  |
 | T12 | [CHANGELOG + KB note](t12-changelog-kb-note.md)           | done        | —   | Yakiv Vakoliuk |
+| T13 | [Upload UI visual styling & layout](t13-ui-styling.md)     | In review | —   | Yakiv Vakoliuk |
 
 ## Status legend
 

@@ -59,15 +59,17 @@ function resultMessage(): string | null | undefined {
 describe("App end-to-end (mocked XHR)", () => {
   it("shows progress while uploading, then success with the filename (AC-01)", async () => {
     await selectFile("cube.stl");
-    expect(container.querySelector("[data-testid=upload-progress]")).not.toBeNull();
+    const button = container.querySelector("[data-testid=upload-button]") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toBe("Uploading...");
 
     FakeXhr.last.progress(5, 10);
     await flush();
-    expect(container.querySelector("[data-testid=upload-progress-percent]")?.textContent).toBe("50%");
+    expect((container.querySelector("[data-testid=upload-button-fill]") as HTMLElement).style.width).toBe("50%");
 
     FakeXhr.last.respond(201, { file_id: "abc", status: "valid" });
     await flush();
-    expect(container.querySelector("[data-testid=upload-progress]")).toBeNull();
+    expect(container.querySelector("[data-testid=upload-button-fill]")).toBeNull();
     expect(container.querySelector("[data-outcome=success]")?.textContent).toContain("cube.stl");
   });
 
@@ -105,6 +107,20 @@ describe("App end-to-end (mocked XHR)", () => {
     await flush();
 
     expect(resultMessage()).toBe(toUserMessage({ kind: "network" }));
-    expect(container.querySelector("[data-testid=upload-progress]")).toBeNull();
+    expect(container.querySelector("[data-testid=upload-button-fill]")).toBeNull();
+  });
+
+  it("starts a new upload straight from the error state with no extra click", async () => {
+    render(<App initialState={{ status: "error", failure: { kind: "network" } }} />, container);
+    expect(resultMessage()).not.toBeNull();
+
+    const input = container.querySelector("input[type=file]") as HTMLInputElement;
+    Object.defineProperty(input, "files", { value: [new File([new Uint8Array(10)], "second.stl")] });
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+    await flush();
+
+    expect(FakeXhr.last).toBeInstanceOf(FakeXhr);
+    expect((container.querySelector("[data-testid=upload-button]") as HTMLButtonElement).textContent).toBe("Uploading...");
+    expect(resultMessage()).toBeUndefined();
   });
 });

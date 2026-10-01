@@ -8,7 +8,7 @@ document.body.appendChild(container);
 
 afterEach(() => render(null, container));
 
-const SECTION_IDS = ["upload-form", "upload-progress", "upload-result"];
+const SECTION_IDS = ["upload-form", "upload-result"];
 
 // Only the top-level child sections; the real components also carry inner test ids.
 function renderedTestIds(state: UploadState): string[] {
@@ -24,8 +24,12 @@ describe("App state machine shell", () => {
     expect(renderedTestIds({ status: "idle" })).toEqual(["upload-form"]);
   });
 
-  it("renders only the progress child when uploading", () => {
-    expect(renderedTestIds({ status: "uploading", progress: { loaded: 1, total: 2 } })).toEqual(["upload-progress"]);
+  it("renders the form with a disabled Uploading... button and proportional fill when uploading", () => {
+    expect(renderedTestIds({ status: "uploading", progress: { loaded: 1, total: 4 } })).toEqual(["upload-form"]);
+    const button = container.querySelector("[data-testid=upload-button]") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.textContent).toBe("Uploading...");
+    expect((container.querySelector("[data-testid=upload-button-fill]") as HTMLElement).style.width).toBe("25%");
   });
 
   it("renders only the result child, flagged success, on success", () => {
@@ -33,9 +37,19 @@ describe("App state machine shell", () => {
     expect(container.querySelector("[data-testid=upload-result]")?.getAttribute("data-outcome")).toBe("success");
   });
 
-  it("renders only the result child, flagged error, on error", () => {
-    expect(renderedTestIds({ status: "error", failure: { kind: "network" } })).toEqual(["upload-result"]);
+  it("renders the form with the error text underneath, controls still enabled, on error", () => {
+    expect(renderedTestIds({ status: "error", failure: { kind: "network" } })).toEqual(["upload-form", "upload-result"]);
     expect(container.querySelector("[data-testid=upload-result]")?.getAttribute("data-outcome")).toBe("error");
+    expect((container.querySelector("[data-testid=upload-button]") as HTMLButtonElement).disabled).toBe(false);
+    expect((container.querySelector("input[type=file]") as HTMLInputElement).disabled).toBe(false);
+  });
+
+  it("returns to idle when Back to start is clicked on the success screen", async () => {
+    render(<App initialState={{ status: "success", filename: "a.stl" }} />, container);
+    (container.querySelector("button") as HTMLButtonElement).click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(container.querySelector("[data-testid=upload-form]")).not.toBeNull();
+    expect(container.querySelector("[data-testid=upload-result]")).toBeNull();
   });
 });
 
