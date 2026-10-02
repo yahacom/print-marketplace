@@ -56,6 +56,72 @@ export function createRequestDurationHistogram() {
   return { observe, render };
 }
 
+// quote-engine metrics (SAD §7): slice duration histogram, slicer queue depth
+// gauge, slicer exit-code counter. Same hand-rolled text format as above. Label
+// values are bounded (an exit code or "none"), never user-controlled.
+const QUOTE_BUCKET_UPPER_BOUNDS_SECONDS = [1, 2.5, 5, 10, 20, 30, 45, 60];
+const SLICE_DURATION_METRIC = "quote_slice_duration_seconds";
+const QUEUE_DEPTH_METRIC = "quote_slicer_queue_depth";
+const EXIT_CODE_METRIC = "quote_slicer_exit_code";
+
+export function createQuoteMetrics() {
+  const durationBuckets = QUOTE_BUCKET_UPPER_BOUNDS_SECONDS.map(() => 0);
+  let durationSum = 0;
+  let durationCount = 0;
+  const exitCodes = new Map<string, number>();
+  let queueDepth: () => number = () => 0;
+
+  // Time from enqueue to slicer result (queue wait + slice), per request.
+  function observeSliceDuration(seconds: number): void {
+    QUOTE_BUCKET_UPPER_BOUNDS_SECONDS.forEach((bound, i) => {
+      if (seconds <= bound) durationBuckets[i]!++;
+    });
+    durationSum += seconds;
+    durationCount++;
+  }
+
+  // `null` (killed by a signal, or the binary could not start) is labelled "none".
+  function countExitCode(exitCode: number | null): void {
+    const code = exitCode === null ? "none" : String(exitCode);
+    exitCodes.set(code, (exitCodes.get(code) ?? 0) + 1);
+  }
+
+  // Read at render time so a scrape sees the live depth, not a snapshot.
+  function setQueueDepthSource(source: () => number): void {
+    queueDepth = source;
+  }
+
+  function render(): string {
+    const lines = [
+      `# HELP ${SLICE_DURATION_METRIC} Time from enqueue to slicer result per quote request, in seconds.`,
+      `# TYPE ${SLICE_DURATION_METRIC} histogram`,
+    ];
+    QUOTE_BUCKET_UPPER_BOUNDS_SECONDS.forEach((bound, i) => {
+      lines.push(`${SLICE_DURATION_METRIC}_bucket{le="${bound}"} ${durationBuckets[i]}`);
+    });
+    lines.push(`${SLICE_DURATION_METRIC}_bucket{le="+Inf"} ${durationCount}`);
+    lines.push(`${SLICE_DURATION_METRIC}_sum ${durationSum}`);
+    lines.push(`${SLICE_DURATION_METRIC}_count ${durationCount}`);
+
+    lines.push(
+      `# HELP ${QUEUE_DEPTH_METRIC} Quote requests waiting for the slicer.`,
+      `# TYPE ${QUEUE_DEPTH_METRIC} gauge`,
+      `${QUEUE_DEPTH_METRIC} ${queueDepth()}`,
+      `# HELP ${EXIT_CODE_METRIC} PrusaSlicer process exits by exit code.`,
+      `# TYPE ${EXIT_CODE_METRIC} counter`,
+    );
+    for (const [code, count] of exitCodes) {
+      lines.push(`${EXIT_CODE_METRIC}{code="${code}"} ${count}`);
+    }
+    return lines.join("\n") + "\n";
+  }
+
+  return { observeSliceDuration, countExitCode, setQueueDepthSource, render };
+}
+
+// Process-wide instance the quote-engine modules report into.
+export const quoteMetrics = createQuoteMetrics();
+
 // Per-request latency metric and alert source (SAD §7 Monitoring), exposed for
 // scraping at GET /metrics. It carries only route/method/status/duration, but it
 // is served on the app port: restrict access at the firewall/reverse proxy.
@@ -76,6 +142,6 @@ export function registerMetrics(app: FastifyInstance): void {
   app.get("/metrics", async (_request, reply) =>
     reply
       .header("content-type", "text/plain; version=0.0.4; charset=utf-8")
-      .send(histogram.render()),
+      .send(histogram.render() + quoteMetrics.render()),
   );
 }

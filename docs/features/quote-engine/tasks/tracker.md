@@ -21,7 +21,7 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 | [[T7-slicer-queue\|T7]] | 3 | done | T4 | S | Yakiv Vakoliuk |
 | [[T8-quote-service-orchestrator\|T8]] | 3 | done | T2, T3, T5, T6, T7 | M | Yakiv Vakoliuk |
 | [[T10-quote-routes-websocket\|T10]] | 4 | done | T8, T9 | M | Yakiv Vakoliuk |
-| [[T11-metrics\|T11]] | 4 | todo | T7, T8 | S | Yakiv Vakoliuk |
+| [[T11-metrics\|T11]] | 4 | done | T7, T8 | S | Yakiv Vakoliuk |
 | [[T12-ui-websocket-quote-client\|T12]] | 5 | todo | T10 | M | Yakiv Vakoliuk |
 | [[T13-integration-tests-per-ac\|T13]] | 5 | todo | T10 | M | Yakiv Vakoliuk |
 | [[T14-k6-load-test\|T14]] | 5 | todo | T10, T11 | S | Yakiv Vakoliuk |
@@ -37,11 +37,11 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 
 ## Progress
 
-- Total: 10/16 done
+- Total: 11/16 done
 - Wave 1: 1/1 (T1)
 - Wave 2: 6/6 (T2, T3, T4, T5, T6, T9)
 - Wave 3: 2/2 (T7, T8)
-- Wave 4: 1/2 (T10, T11)
+- Wave 4: 2/2 (T10, T11)
 - Wave 5: 0/5 (T12, T13, T14, T15, T16)
 
 ## Next runnable

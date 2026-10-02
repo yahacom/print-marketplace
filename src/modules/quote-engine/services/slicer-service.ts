@@ -3,6 +3,7 @@ import { access, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { quoteMetrics } from "../../../metrics.js";
 
 // PrusaSlicer CLI subprocess wrapper (T4, SAD §5). Returns raw outputs only;
 // parsing --info / G-code and classifying outcomes belongs to gcode-parser (T5).
@@ -108,6 +109,7 @@ export const sliceModel = async (
       state.kill = kill;
     });
     state.kill = null;
+    quoteMetrics.countExitCode(output.exitCode);
     return output;
   };
 

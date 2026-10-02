@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { quoteMetrics } from "../../../metrics.js";
 import type { NotFound } from "../repositories/model-reader.js";
 import type { DraftOrder, QuoteRepository } from "../repositories/quote-repository.js";
 import { parseSliceOutput } from "./gcode-parser.js";
@@ -55,9 +56,14 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
     // The caller walked away while we were resolving the file: don't queue it.
     if (state.cancelled) return CANCELLED;
 
+    const enqueuedAt = performance.now();
     const job = deps.queue.enqueue(modelPath);
     state.queueJobId = job.id;
     const sliced = await job.promise;
+    // Cancelled jobs were not (fully) sliced; counting them would skew the p95.
+    if (!sliced.cancelled) {
+      quoteMetrics.observeSliceDuration((performance.now() - enqueuedAt) / 1000);
+    }
 
     try {
       if (sliced.cancelled) return CANCELLED;

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { quoteMetrics } from "../../../metrics.js";
 import { sliceModel, type SliceResult } from "./slicer-service.js";
 
 // In-process FIFO queue with a single worker (T7, ADR-0003): at most one
@@ -99,6 +100,7 @@ export const createSlicerQueue = (
 };
 
 const defaultQueue = createSlicerQueue();
+quoteMetrics.setQueueDepthSource(defaultQueue.getQueueDepth);
 
 export const enqueueSlice = defaultQueue.enqueue;
 export const cancelSlice = defaultQueue.cancel;
