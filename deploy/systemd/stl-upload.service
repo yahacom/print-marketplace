@@ -3,6 +3,9 @@
 #   systemctl daemon-reload && systemctl enable --now stl-upload
 # Assumes the built app (`npm ci --omit=dev && npm run build`) lives in
 # /opt/stl-upload and that the `stl-upload` user exists.
+# quote-engine (T4) shells out to the PrusaSlicer CLI; pinned version: 2.9.6
+# (verified against real files). Install it so `prusa-slicer` is on PATH, or set
+# PRUSA_SLICER_BIN. Re-verify docs/features/quote-engine/tasks/T4-* if bumped.
 [Unit]
 Description=stl-upload service
 After=network.target
