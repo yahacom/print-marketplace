@@ -44,6 +44,8 @@ interface RequestState {
 const NOT_FOUND: QuoteResult = Object.freeze({ error: "quote.not_found" });
 const CANCELLED: QuoteResult = Object.freeze({ cancelled: true });
 
+export type QuoteService = ReturnType<typeof createQuoteService>;
+
 export const createQuoteService = (deps: QuoteServiceDeps) => {
   const requests = new Map<string, RequestState>();
 

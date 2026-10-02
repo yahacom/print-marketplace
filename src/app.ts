@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import { fileURLToPath } from "node:url";
 import type { Writable } from "node:stream";
 import { registerMetrics } from "./metrics.js";
+import { quoteEngineModule, type QuoteEngineOptions } from "./modules/quote-engine/module.js";
 import { stlUploadModule } from "./modules/stl-upload/module.js";
 import {
   registerRequestLogging,
@@ -12,7 +13,9 @@ import {
 // src/ and dist/ both sit one level below the repo root, so this resolves for tsx and compiled runs.
 const defaultUiRoot = fileURLToPath(new URL("../dist-ui", import.meta.url));
 
-export function buildApp(options: { logStream?: Writable; uiRoot?: string } = {}) {
+export function buildApp(
+  options: { logStream?: Writable; uiRoot?: string } & QuoteEngineOptions = {},
+) {
   const app = Fastify({
     ...requestLoggingOptions,
     logger: {
@@ -25,6 +28,7 @@ export function buildApp(options: { logStream?: Writable; uiRoot?: string } = {}
   registerMetrics(app);
   app.get("/health", async () => ({ status: "ok" }));
   app.register(stlUploadModule);
+  app.register(quoteEngineModule, { quoteService: options.quoteService });
   app.register(fastifyStatic, { root: options.uiRoot ?? defaultUiRoot });
 
   return app;
