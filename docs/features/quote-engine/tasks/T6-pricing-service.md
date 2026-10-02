@@ -7,7 +7,7 @@ priority: Must
 estimate: XS
 blocks: [T8]
 blocked_by: [T1]
-status: todo
+status: done
 prd_refs: [AC-03, "§6 NFR price accuracy", "§8 Resolved open question"]
 sad_refs: ["§5", "§10 QG-1"]
 adr_refs: []
@@ -33,14 +33,14 @@ Implement the formula exactly as documented in `pricing-config.json`'s `_comment
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-ps-1 (happy path breakdown, AC-03):** Given `timeMinutes` and `filamentGrams` from T5, when priced, then the result includes `timeCost`, `materialCost`, `margin`, and `totalPrice`, where `totalPrice = timeCost + materialCost + margin`.
-- [ ] **AC-ps-2 (formula correctness):** Given the confirmed rates (2.5 USD/hr, 0.02 USD/g, 20% margin), when priced with known inputs, then the computed values match a hand-calculated expectation exactly (not just "roughly").
-- [ ] **AC-ps-3 (reads config, not hardcoded):** Given `config/pricing.json` is changed, when priced, then the new rates are used without a code change — confirmed by a test that swaps the config and asserts the output changes accordingly.
+- [x] **AC-ps-1 (happy path breakdown, AC-03):** Given `timeMinutes` and `filamentGrams` from T5, when priced, then the result includes `timeCost`, `materialCost`, `margin`, and `totalPrice`, where `totalPrice = timeCost + materialCost + margin`.
+- [x] **AC-ps-2 (formula correctness):** Given the confirmed rates (2.5 USD/hr, 0.02 USD/g, 20% margin), when priced with known inputs, then the computed values match a hand-calculated expectation exactly (not just "roughly").
+- [x] **AC-ps-3 (reads config, not hardcoded):** Given `config/pricing.json` is changed, when priced, then the new rates are used without a code change — confirmed by a test that swaps the config and asserts the output changes accordingly.
 
 ## Checklist
 
-- [ ] Step 1 — Implement `computePrice({ timeMinutes, filamentGrams }): { timeCost, materialCost, margin, totalPrice }` reading `config/pricing.json`.
-- [ ] Step 2 — Unit tests for AC-ps-1/2/3 with hand-calculated expected values.
+- [x] Step 1 — Implement `computePrice({ timeMinutes, filamentGrams }): { timeCost, materialCost, margin, totalPrice }` reading `config/pricing.json`.
+- [x] Step 2 — Unit tests for AC-ps-1/2/3 with hand-calculated expected values.
 
 ## Edge cases
 
@@ -51,5 +51,11 @@ Implement the formula exactly as documented in `pricing-config.json`'s `_comment
 
 ## Definition of Done
 
-- [ ] All AC green.
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green.
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- ASSUMPTION: margin is `margin_pct` of the time+material subtotal (the task flagged the base as possibly ambiguous; PRD §8 gives only the percentage). If the product owner meant margin on something else, only `computePrice` changes.
+- API: `computePrice({ timeMinutes, filamentGrams }, config?)` (the T1 stub was named `priceQuote`; the task's Step 1 name `computePrice` was used, T8 should call that). `loadPricingConfig(path?)` validates the three rates are finite numbers; the default config is read once on first use, so a rate change needs a process restart. No rounding anywhere.
+- Hand-check at 90 min / 50 g: 3.75 + 1.00 + 0.95 = 5.70 USD. Currency fields in `pricing.json` are not read; the service is currency-agnostic.
