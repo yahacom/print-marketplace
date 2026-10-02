@@ -251,25 +251,18 @@ Each top-3 goal from §1 expanded into a full scenario:
 
 ## 11. Risks and technical debt
 
-<!-- 🎯 Навіщо: ⭐ збирає ВСЕ, що може зламатись — і не лише технічне. Без §11 ризики   -->
-<!--           обговорюються на стендапах і губляться; борг лишається у голові того,    -->
-<!--           хто його прийняв.                                                          -->
-<!-- 📋 Що писати: таблиця ризик/борг — серйозність — мітигація — власник. Технічний    -->
-<!--           борг окремою секцією.                                                      -->
-<!-- 📌 Приклад: «EM не пушить — member не оновлює дані | High | …». Перший ризик —      -->
-<!--           часто продуктовий, не технічний. Це нормально.                            -->
-
-<!-- Severity column literals: Low / Medium / High for regular risks; "Open question" for rows
-     created by Step-7 `Save as Open Question` resolutions (see references/socratic-loop.md). -->
-
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| <e.g. Outbox lag may reach hours during downstream outage> | Medium | <Alert >10 min, on-call playbook, retry backoff> | <DevOps> |
-| <e.g. No event schema versioning in v1> | Medium | <ADR-NNNN planned for v2, graceful handling of unknown fields> | <Backend> |
-| Open architectural decision: <decision-headline> | Open question | Resolve before <stage trigger or YYYY-MM-DD>; <inline rationale from Step-7 Save-as-OQ> | <owner> |
+| Open architectural decision: concurrency model for PrusaSlicer invocations (in-process FIFO queue vs. bounded worker pool vs. external job queue) | Open question | Resolve before `sdlc:break-tasks`; gates §7's single-instance scaling threshold | Yakiv Vakoliuk |
+| order-confirmation's already-Accepted architecture (ADR-0001/0002/0004, data-model.md) is now stale — it assumed quote-engine persists nothing and recomputes live; ADR-0002 here persists a draft order instead | High | Re-run the relevant parts of order-confirmation's architecture-design / data-model pass (`create()`-based exactly-once needs a transaction-based replacement once a draft doc pre-exists) before implementing either feature | Yakiv Vakoliuk |
+| Open architectural decision: pricing formula rates (rate/hour, price/gram, margin %) not yet confirmed (PRD §8) | Open question | Resolve before `sdlc:break-tasks`; formula *shape* (config-driven time×rate + material×price + margin) is fixed, only the numbers are open | Yakiv Vakoliuk (Product Owner) |
+| Open architectural decision: whether UI should indicate which printer/material configuration is in use (PRD §8) | Open question | Resolve before `sdlc:break-tasks`; default today is no indicator (single fixed config) | Yakiv Vakoliuk (Product Owner) |
+| PrusaSlicer CLI has no pinned version anywhere in the repo, and the slicer wrapper has not been verified against real .stl files yet (stl-parse-feature-plan.md human checkpoint #1) | Medium | Pin a PrusaSlicer CLI version in deployment docs/Dockerfile before implementation; run the wrapper against a real-file corpus before this SAD's decisions are treated as final | Yakiv Vakoliuk |
+| Firestore draft-order retention is undefined (ADR-0002) — a quote that's never confirmed leaves an orphaned draft document indefinitely | Medium | Define a TTL or cleanup policy for unconfirmed drafts before `sdlc:generate-data-model` for this feature | Yakiv Vakoliuk |
 
 **Accepted debt (acceptable in v1, plan to fix later):**
-- <e.g. Goal entity is not versioned (immutable) — OK for v1, may need audit versioning in v2>
+- No multi-instance scaling for quote-engine as long as the concurrency model resolves to an in-memory queue (§7) — acceptable for a solo-maintainer MVP with no stated multi-instance requirement.
+- Quote determinism between the browser-facing quote and any later re-derivation is assumed, not verified — if PrusaSlicer or the pricing formula ever produce a different result for the same input between two calls, nothing in this SAD currently detects that drift.
 
 ## 12. Glossary
 
