@@ -7,7 +7,7 @@ priority: Must
 estimate: M
 blocks: [T15, T16]
 blocked_by: [T10]
-status: todo
+status: done
 prd_refs: [AC-01, AC-02, AC-03, AC-04, AC-05, AC-06]
 sad_refs: ["gap — not in §5, see _epic.md scope note"]
 adr_refs: ["0001"]
@@ -36,19 +36,19 @@ adr_refs: ["0001"]
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-ui-1 (AC-01 happy path display):** Given a successful `quote.done` push, when rendered, then the user sees price and print time.
-- [ ] **AC-ui-2 (AC-03 breakdown display):** Given a successful quote, when rendered, then time cost, material cost, and margin are shown as separate values, not folded into one total.
-- [ ] **AC-ui-3 (AC-02/04/05/06 error display):** Given any `quote.error` code, when rendered, then the user sees the mapped plain-text message from `errors.ts` — never the raw backend `{code, message}` payload.
-- [ ] **AC-ui-4 (dropped connection ≠ assumed failure wording):** Given the WS connection drops mid-slice (no `quote.done`/`quote.error` received), when rendered, then the user sees a message consistent with "connection lost, try again" — not a message implying the model itself failed to slice.
+- [x] **AC-ui-1 (AC-01 happy path display):** Given a successful `quote.done` push, when rendered, then the user sees price and print time.
+- [x] **AC-ui-2 (AC-03 breakdown display):** Given a successful quote, when rendered, then time cost, material cost, and margin are shown as separate values, not folded into one total.
+- [x] **AC-ui-3 (AC-02/04/05/06 error display):** Given any `quote.error` code, when rendered, then the user sees the mapped plain-text message from `errors.ts` — never the raw backend `{code, message}` payload.
+- [x] **AC-ui-4 (dropped connection ≠ assumed failure wording):** Given the WS connection drops mid-slice (no `quote.done`/`quote.error` received), when rendered, then the user sees a message consistent with "connection lost, try again" — not a message implying the model itself failed to slice.
 
 ## Checklist
 
-- [ ] Step 1 — Read `docs/features/stl-upload-ui/kb-extending-state-machine.md`.
-- [ ] Step 2 — Implement `quote-client.ts`.
-- [ ] Step 3 — Extend `errors.ts` with the four `quote.*` mappings (AC-05/AC-06 sharing one message).
-- [ ] Step 4 — Implement/extend the display component for AC-ui-1/2.
-- [ ] Step 5 — Wire the dropped-connection case (AC-ui-4).
-- [ ] Step 6 — Component + state-machine tests for AC-ui-1..4 (happy-dom, matching existing `app.test.tsx` patterns).
+- [x] Step 1 — Read `docs/features/stl-upload-ui/kb-extending-state-machine.md`.
+- [x] Step 2 — Implement `quote-client.ts`.
+- [x] Step 3 — Extend `errors.ts` with the four `quote.*` mappings (AC-05/AC-06 sharing one message).
+- [x] Step 4 — Implement/extend the display component for AC-ui-1/2.
+- [x] Step 5 — Wire the dropped-connection case (AC-ui-4).
+- [x] Step 6 — Component + state-machine tests for AC-ui-1..4 (happy-dom, matching existing `app.test.tsx` patterns).
 
 ## Edge cases
 
@@ -59,6 +59,16 @@ adr_refs: ["0001"]
 
 ## Definition of Done
 
-- [ ] All AC green.
-- [ ] No raw backend `message` ever reaches the rendered UI — confirmed by test, not just code review.
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green.
+- [x] No raw backend `message` ever reaches the rendered UI — confirmed by test, not just code review.
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- Added: `src/ui/quote-client.ts` (`requestQuote(fileId)` → `{ promise, close() }`), `QuoteFailure` + `toQuoteUserMessage` in `errors.ts`, `components/QuoteResult.tsx`, and two states in `app.tsx` (`quote_ready`, `quote_error`, with `transitions.quoteReady` / `quoteFail`; the existing "Back to start" button was pulled into one shared element). Tests: `quote-client.test.ts`, `quote-errors.test.ts`, `components/QuoteResult.test.tsx`, `app.quote.test.tsx`; existing UI tests are unchanged and still pass.
+- ASSUMPTION: **entry into the quote flow is T16's job.** T12 does not start the WebSocket after an upload, because T16 AC-ws-1 owns "auto-start on upload success" and doing it here would change the existing upload-success screen that `app.integration.test.tsx` asserts. Until T16 lands the two new states are only reachable through `initialState`.
+- Wire protocol matches T10: first message `{ type: "quote.request", fileId }`; URL derived from `location` (`ws:`/`wss:`, same host, `/api/v1/quotes`).
+- ASSUMPTION: after `close()` the request promise never settles and handlers are muted (a late `quote.done` from a closed socket is ignored). Callers (T16) must not await it for cleanup.
+- ASSUMPTION: an unrecognized or malformed push becomes `{ kind: "backend", code: "unknown" }` → the generic text; `quote.internal_error` (T10's operational-failure code) falls through to the same generic text.
+- ASSUMPTION: price is formatted as USD (`config/pricing.json` currencies are USD), time as "1 h 30 min", rounded to whole minutes with a 1-minute floor. Not specified anywhere; display-only.
+- The raw backend `message` is carried on `QuoteFailure` for debugging and never rendered — asserted in `quote-errors.test.ts`, `QuoteResult.test.tsx` and `app.quote.test.tsx`.

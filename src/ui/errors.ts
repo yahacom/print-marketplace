@@ -27,3 +27,38 @@ export function toUserMessage(failure: UploadFailure): string {
   }
   return BACKEND_CODE_TEXT.get(failure.code) ?? GENERIC_TEXT;
 }
+
+// quote-engine failures (T12). `quote.error` pushes carry a backend `{code, message}`;
+// like uploads, only the code selects fixed text and the message is never shown.
+// `connection_lost` means the socket ended before any result arrived (ADR-0001):
+// the slice itself may have succeeded or failed, so the wording must not blame the model.
+export type QuoteFailure =
+  | { kind: "backend"; code: string; message: string }
+  | { kind: "connection_lost" };
+
+const QUOTE_NOT_FOUND_TEXT =
+  "We couldn't find your uploaded model. Please upload it again.";
+const QUOTE_UNSLICABLE_TEXT =
+  "We couldn't prepare this model for printing, so we can't quote it. Please check the model or try another file.";
+const QUOTE_EXCEEDS_BUILD_VOLUME_TEXT =
+  "This model is larger than our printer can handle. Please scale it down or choose a smaller model.";
+const QUOTE_RATE_LIMITED_TEXT =
+  "Too many quote requests in a short time. Please wait a moment and try again.";
+const QUOTE_CONNECTION_LOST_TEXT =
+  "The connection was lost while preparing your quote. Please try again.";
+
+// `quote.not_found` is the single code for a missing and a not-owned file, so it gets
+// one message: no wording difference that could reveal whether a file exists.
+const QUOTE_CODE_TEXT = new Map([
+  ["quote.not_found", QUOTE_NOT_FOUND_TEXT],
+  ["quote.unslicable", QUOTE_UNSLICABLE_TEXT],
+  ["quote.exceeds_build_volume", QUOTE_EXCEEDS_BUILD_VOLUME_TEXT],
+  ["quote.rate_limited", QUOTE_RATE_LIMITED_TEXT],
+]);
+
+export function toQuoteUserMessage(failure: QuoteFailure): string {
+  if (failure.kind === "connection_lost") {
+    return QUOTE_CONNECTION_LOST_TEXT;
+  }
+  return QUOTE_CODE_TEXT.get(failure.code) ?? GENERIC_TEXT;
+}

@@ -1,14 +1,18 @@
 import { useState } from "preact/hooks";
 import { UploadForm } from "./components/UploadForm.js";
+import { QuoteResult } from "./components/QuoteResult.js";
 import { UploadResult } from "./components/UploadResult.js";
-import type { UploadFailure } from "./errors.js";
+import type { QuoteFailure, UploadFailure } from "./errors.js";
+import type { QuoteDone } from "./quote-client.js";
 import { submitUpload, type UploadProgressEvent } from "./upload-client.js";
 
 export type UploadState =
   | { status: "idle" }
   | { status: "uploading"; progress: UploadProgressEvent }
   | { status: "success"; filename: string }
-  | { status: "error"; failure: UploadFailure };
+  | { status: "error"; failure: UploadFailure }
+  | { status: "quote_ready"; quote: QuoteDone }
+  | { status: "quote_error"; failure: QuoteFailure };
 
 export const transitions = {
   // `total` is clamped to 1 so the upload button's fill never divides by zero before the first real progress event.
@@ -19,6 +23,8 @@ export const transitions = {
   progress: (progress: UploadProgressEvent): UploadState => ({ status: "uploading", progress }),
   succeed: (filename: string): UploadState => ({ status: "success", filename }),
   fail: (failure: UploadFailure): UploadState => ({ status: "error", failure }),
+  quoteReady: (quote: QuoteDone): UploadState => ({ status: "quote_ready", quote }),
+  quoteFail: (failure: QuoteFailure): UploadState => ({ status: "quote_error", failure }),
   reset: (): UploadState => ({ status: "idle" }),
 };
 
@@ -33,6 +39,12 @@ export function App({ initialState = { status: "idle" } }: { initialState?: Uplo
     );
   }
 
+  const backToStart = (
+    <button type="button" class="button" onClick={() => setState(transitions.reset())}>
+      Back to start
+    </button>
+  );
+
   switch (state.status) {
     case "idle":
       return <UploadForm onFileSelected={handleFileSelected} />;
@@ -44,9 +56,21 @@ export function App({ initialState = { status: "idle" } }: { initialState?: Uplo
       return (
         <>
           <UploadResult outcome="success" filename={state.filename} />
-          <button type="button" class="button" onClick={() => setState(transitions.reset())}>
-            Back to start
-          </button>
+          {backToStart}
+        </>
+      );
+    case "quote_ready":
+      return (
+        <>
+          <QuoteResult outcome="success" quote={state.quote} />
+          {backToStart}
+        </>
+      );
+    case "quote_error":
+      return (
+        <>
+          <QuoteResult outcome="error" failure={state.failure} />
+          {backToStart}
         </>
       );
   }
