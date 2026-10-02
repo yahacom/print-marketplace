@@ -266,14 +266,14 @@ Each top-3 goal from §1 expanded into a full scenario:
 
 ## 12. Glossary
 
-<!-- 🎯 Навіщо: ⭐ СЛОВНИК ДОМЕНУ, який припиняє суперечки через рік («checkpoint —      -->
-<!--           weekly чи biweekly? Quarter — календарний чи фіскальний?»).                -->
-<!-- 📋 Що писати: таблиця термін / значення. Бізнес-терміни + технічні вперемішку.       -->
-<!--           Один термін може мати дві мови у заголовку: «Goal (Обʼєктив)».              -->
-<!-- 📌 Приклад: «Lesson | урок усередині курсу, що складається з блоків (text, video)». -->
-
 | Term | Meaning |
 |---|---|
-| <e.g. Goal> | <quarterly intent in statement form> |
-| <e.g. KR> | <Key Result — measurable target linked to a Goal> |
-| <e.g. Checkpoint> | <bi-weekly progress update on a KR> |
+| model | The 3D object a user wants printed (CONTEXT.md). Not the STL file — the file is one encoding of it. |
+| STL file | File format encoding a model's surface as triangles (CONTEXT.md). |
+| watertight mesh | A model surface with no holes — required for PrusaSlicer to slice it (CONTEXT.md). Checked by quote-engine, not stl-upload (ADR-0006). |
+| valid model | A model that passed stl-upload's format/size checks and is fit for the slicer (CONTEXT.md). |
+| quote | A price proposal (print time + material usage + price) produced by slicing a valid model (CONTEXT.md). |
+| cost breakdown | The decomposition of a quote's price into components — time cost, material cost, margin (CONTEXT.md). |
+| order | A record of the user's confirm/decline decision on a quote (CONTEXT.md) — owned by order-confirmation, not this feature. |
+| file-id | The UUID v4 stl-upload mints at upload time (stl-upload ADR-0005); threaded unchanged through quote-engine and order-confirmation as the shared identifier (order-confirmation ADR-0003). Not a CONTEXT.md domain term — technical identifier. |
+| **draft order** *(new — not yet in CONTEXT.md)* | The Firestore document quote-engine writes at quote time (ADR-0002), holding price/time/breakdown before any confirm/decline decision exists. Flagged here for a `sdlc:fix-term` follow-up — this concept didn't exist before this SAD's §4 override and isn't yet in the domain glossary. |
