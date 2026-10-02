@@ -7,7 +7,7 @@ priority: Must
 estimate: XS
 blocks: [T10]
 blocked_by: [T1]
-status: todo
+status: done
 prd_refs: ["§6.1 Spam create"]
 sad_refs: ["§5", "§8 Rate limiting row"]
 adr_refs: []
@@ -33,14 +33,14 @@ Copy the in-memory fixed-window per-IP limiter pattern from `stl-upload/routes/r
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-rl-1 (under limit):** Given fewer than 30 requests/min from one IP, when a quote request arrives, then it is allowed through.
-- [ ] **AC-rl-2 (over limit):** Given 30+ requests/min from one IP, when the next request arrives, then it is rejected with `quote.rate_limited`.
-- [ ] **AC-rl-3 (independent counters):** Given stl-upload's limiter is at its own cap, when a quote request arrives, then it is evaluated against quote-engine's own counter, unaffected by stl-upload's state.
+- [x] **AC-rl-1 (under limit):** Given fewer than 30 requests/min from one IP, when a quote request arrives, then it is allowed through.
+- [x] **AC-rl-2 (over limit):** Given 30+ requests/min from one IP, when the next request arrives, then it is rejected with `quote.rate_limited`.
+- [x] **AC-rl-3 (independent counters):** Given stl-upload's limiter is at its own cap, when a quote request arrives, then it is evaluated against quote-engine's own counter, unaffected by stl-upload's state.
 
 ## Checklist
 
-- [ ] Step 1 — Copy/adapt `stl-upload/routes/rate-limit.ts`'s shape into `quote-engine/routes/rate-limit.ts`, new counter instance.
-- [ ] Step 2 — Unit tests for AC-rl-1/2/3.
+- [x] Step 1 — Copy/adapt `stl-upload/routes/rate-limit.ts`'s shape into `quote-engine/routes/rate-limit.ts`, new counter instance.
+- [x] Step 2 — Unit tests for AC-rl-1/2/3.
 
 ## Edge cases
 
@@ -50,5 +50,11 @@ Copy the in-memory fixed-window per-IP limiter pattern from `stl-upload/routes/r
 
 ## Definition of Done
 
-- [ ] All AC green.
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green.
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- API: `applyQuoteRateLimit(app)` (the T1 stub was `quoteRateLimit`; renamed to mirror stl-upload's `applyRateLimit`). It installs an `onRequest` hook on the instance it is given, so T10 must call it inside the same encapsulation context as the WebSocket route; the handshake is an HTTP GET, so the hook runs before the upgrade and a 429 JSON reply is sent instead.
+- ASSUMPTION: 429 body is `{ code: "quote.rate_limited", message: "Too many quote requests from this connection. Please wait a moment and try again." }` plus a `retry-after` header — no quote-engine contract specifies the message text; it mirrors stl-upload's wording. The UI maps codes to its own text anyway.
+- ASSUMPTION: no env override (stl-upload has `UPLOAD_RATE_LIMIT_PER_MIN` for k6); the task says no new number. T14's load test will hit the 30/min cap from one IP and will need such an override added then.
