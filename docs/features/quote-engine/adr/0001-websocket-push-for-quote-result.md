@@ -48,7 +48,7 @@ A quote request requires actually invoking PrusaSlicer CLI as a subprocess — r
 - WebSocket connections can drop mid-slice (proxy idle timeout, network blip) without a keep-alive ping/pong; the client must handle a dropped connection as a quote failure, not assume the slice itself failed.
 
 **Neutral**
-- Does not change how `order-confirmation` gets a quote — that module calls quote-engine's exported function in-process (order-confirmation ADR-0002), independent of how the browser-facing API is shaped.
+- Once the PrusaSlicer subprocess finishes, quote-engine writes the result to Firestore as a draft order (this feature's ADR-0002) and, in the same moment, pushes it to the browser over this WebSocket so the user can decide. order-confirmation's confirm step then acts on that Firestore draft directly — the in-process live-recompute path order-confirmation's own ADR-0002 originally assumed is superseded by this feature's ADR-0002, not merely independent of it.
 
 ## Links
 

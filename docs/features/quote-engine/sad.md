@@ -33,13 +33,14 @@ ticket: "<TBD>"
 | Product Owner (Yakiv Vakoliuk) | confirms the pricing formula and rates before launch (PRD §8 open question) | No |
 | Tech Lead | SAD approval | Yes |
 | Security Lead | reviews untrusted-STL-to-subprocess handling (PRD §6.1) | Yes |
+| order-confirmation maintainer (Yakiv Vakoliuk) | owns the rework of ADR-0001/0002/0004 + data-model.md, required after this SAD's ADR-0002 override (§4, §11) | Yes |
 
 ## 2. Constraints
 
 **Technical.**
 - Node.js ≥20, TypeScript 6.0.3 (ESM, `"type": "module"`), Fastify 5.12.5.
 - `@fastify/multipart`, `@fastify/static` already in use (stl-upload); no new HTTP-layer dependency expected.
-- Filesystem-only persistence — no database, no accounts (CLAUDE.md, confirmed by Explore scan: no Prisma/Drizzle/SQL anywhere in repo).
+- Filesystem-only persistence for model files (`STORAGE_DIR`) — no relational database anywhere in the repo (CLAUDE.md, confirmed by Explore scan: no Prisma/Drizzle/SQL). **Firestore is used for quote/draft-order persistence** (ADR-0002, §4) — a deliberate part of this feature's own architecture, not a deviation to be flagged away; see §9/§11 for the cross-feature follow-up it requires.
 - Layered convention: `routes/` → `services/` → `repositories/`, per ADR-0004 (stl-upload).
 - New dependency: PrusaSlicer CLI, invoked as an untrusted-input subprocess (stl-parse-feature-plan.md). **No version pinned anywhere in the repo yet** — flagged as a risk in §11 (ties to stl-parse-feature-plan.md human checkpoint #1: wrapper not yet verified against real .stl files).
 
@@ -78,7 +79,7 @@ C4Context
     System(marketplace, "Print Marketplace backend", "Fastify monolith — stl-upload + quote-engine modules")
     System_Ext(slicer, "PrusaSlicer CLI", "third-party slicer binary, invoked as a local subprocess")
 
-    Rel(user, marketplace, "Requests a quote for a file-id", "HTTPS")
+    Rel(user, marketplace, "Requests a quote for a file-id", "WebSocket")
     Rel(marketplace, slicer, "Slices STL, reads G-code + stats", "local subprocess")
 ```
 
