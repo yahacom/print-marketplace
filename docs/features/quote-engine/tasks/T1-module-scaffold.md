@@ -7,7 +7,7 @@ priority: Must
 estimate: XS
 blocks: [T2, T3, T4, T5, T6, T9]
 blocked_by: []
-status: todo
+status: done
 prd_refs: []
 sad_refs: ["§5"]
 adr_refs: []

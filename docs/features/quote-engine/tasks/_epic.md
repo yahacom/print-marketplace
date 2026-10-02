@@ -102,7 +102,7 @@ flowchart LR
 
 ## Tasks
 
-- [ ] [[T1-module-scaffold|T1: quote-engine module scaffold]] — XS — Must
+- [x] [[T1-module-scaffold|T1: quote-engine module scaffold]] — XS — Must
 - [ ] [[T2-model-reader-repository|T2: model-reader repository (SAFE_FILE_ID read)]] — S — Must
 - [ ] [[T3-firestore-quote-repository|T3: Firestore quote-repository + credential loading]] — S — Must
 - [ ] [[T4-slicer-service-subprocess|T4: slicer-service PrusaSlicer CLI wrapper]] — S — Must

@@ -1,0 +1,8 @@
+{
+  "_comment": "Pricing formula config for quote-engine (sad.md §5 pricing-service.ts). total_price = (time_hours * rate_per_hour) + (filament_grams * price_per_gram) + margin. Confirmed by Product Owner (Yakiv Vakoliuk) 2026-10-02, per PRD §8 open question. Copy to src/modules/quote-engine/config/pricing.json at implementation time.",
+  "rate_per_hour": 2.5,
+  "rate_per_hour_currency": "USD",
+  "price_per_gram": 0.02,
+  "price_per_gram_currency": "USD",
+  "margin_pct": 20
+}
