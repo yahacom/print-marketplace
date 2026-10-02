@@ -209,22 +209,17 @@ quote-engine deploys inside the same single Fastify process as stl-upload — no
 
 ## 8. Crosscutting concepts
 
-<!-- 🎯 Навіщо: НАСКРІЗНІ ПАТЕРНИ, які перетинають кілька модулів: логування, помилки,    -->
-<!--           авторизація, ID strategy, outbox, кеш. ⭐ Друга найгустіша секція.          -->
-<!--           Якщо патерн всередині одного модуля — він НЕ сюди. Якщо це конвенція        -->
-<!--           проєкту в цілому — у CLAUDE.md.                                              -->
-<!-- 📋 Що писати: таблиця концепт / конвенція / де визначено. Один рядок на концепт.      -->
-<!-- 📌 Приклад: «UUID v7 (час+випадковий, сортується) у app-layer» — як default з CLAUDE.md. -->
-
 | Concept | Convention | Where defined |
 |---|---|---|
-| Logging | <e.g. structured slog, fields `module=<name>`> | <CLAUDE.md §X or here> |
-| Authentication | <e.g. JWT via session middleware> | <CLAUDE.md §X> |
-| Error handling | <e.g. domain sentinel → ports/errors.go → apperr JSON> | <CLAUDE.md §X> |
-| ID strategy | <e.g. UUID v7 in app layer> | <CLAUDE.md §X> |
-| Internationalisation | <e.g. N/A, English only> | — |
-| Observability | <e.g. OpenTelemetry on HTTP boundaries> | — |
-| Outbox / events | <module-specific patterns, if any> | <here> |
+| Logging | Fastify built-in logger, same as stl-upload; silenced in tests unless a logStream is passed | `src/request-logging.ts` |
+| Authentication | None — no accounts in MVP; the UUID v4 file-id is the sole access control (stl-upload ADR-0005) | CLAUDE.md, stl-upload ADR-0005 |
+| Error handling | `{code, message}` sentinel, quote-engine mints `quote.*` codes (`quote.not_found`, `quote.unslicable`, `quote.exceeds_build_volume`, `quote.rate_limited`) | stl-upload `routes/upload-routes.ts` pattern |
+| ID strategy | No new id minted — reuses stl-upload's UUID v4 file-id end-to-end as quoteId (order-confirmation ADR-0003) | stl-upload ADR-0005, order-confirmation ADR-0003 |
+| Rate limiting | In-memory per-IP fixed-window limiter, own counter instance, same shape as `rate-limit.ts` | stl-upload `routes/rate-limit.ts` pattern |
+| Subprocess safety | PrusaSlicer invoked via `child_process` with an argument array (never a shell string) — no shell interpolation of filenames/paths, same discipline as `SAFE_FILE_ID` | PRD §6.1 |
+| Credential management | **New in this repo**: Firestore service-account key loaded from an env var (e.g. `FIRESTORE_CREDENTIALS_JSON`), never committed; first credential-bearing dependency in the codebase | CLAUDE.md security rules (secrets never hardcoded) |
+| Internationalisation | N/A, English only | — |
+| Observability | Prometheus metrics only (no OpenTelemetry anywhere in repo) — see §7 | `src/metrics.ts` |
 
 ## 9. Architecture decisions
 
