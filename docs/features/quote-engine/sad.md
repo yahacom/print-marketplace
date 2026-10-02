@@ -144,32 +144,53 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- 🎯 Навіщо: ПОТІК У RUNTIME для 1-2 критичних сценаріїв. Хто з ким коли і у якому     -->
-<!--           порядку говорить. Без §6 §5 — лише купа коробок без життя.                  -->
-<!-- 📋 Що писати: Mermaid sequenceDiagram. Учасники — імена з §5 (не вигадуй нові!).      -->
-<!--           Повідомлення семантичні («складає чорновик»), БЕЗ HTTP-методів/шляхів —     -->
-<!--           ендпоінт-рівневі sequence-діаграми зʼявляться у stage 06 (define-api).      -->
-<!-- 📌 Приклад: «methodist → web-app: складає чорновик → web-app → content-api: зберегти». -->
-
-**Critical flow 1: <flow name>**
+**Critical flow 1: Happy path — AC-01 (exact quote returned)**
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant API
-    participant Service
-    participant DB
-    User->>API: <request>
-    API->>Service: <call>
-    Service->>DB: <write tx>
-    DB-->>Service: ok
-    Service-->>API: result
-    API-->>User: 201
+    participant quote-engine
+    participant Local filesystem
+    participant PrusaSlicer CLI
+    participant Firestore
+
+    User->>quote-engine: Opens WebSocket, requests a quote for file-id
+    quote-engine->>Local filesystem: Reads <file-id>.stl
+    Local filesystem-->>quote-engine: STL bytes
+    quote-engine->>PrusaSlicer CLI: Slices STL (local subprocess, fixed printer/material profile)
+    PrusaSlicer CLI-->>quote-engine: G-code + stats (time, filament grams)
+    quote-engine->>quote-engine: Applies pricing formula → price + breakdown
+    quote-engine->>Firestore: Writes draft order (price, time, breakdown), keyed by file-id
+    Firestore-->>quote-engine: ok
+    quote-engine-->>User: WS push quote.done {price, time, breakdown}
 ```
 
-<!-- For XS/S: 1 flow above is enough. For M+: add 2-4 more (e.g. failure-mode flow, async flow). -->
+**Critical flow 2: Blocked quote — AC-02 / AC-04 / AC-05 / AC-06 (generic blocking error)**
 
-**Critical flow 2: <e.g. async event propagation>** — <if applicable, otherwise N/A>.
+```mermaid
+sequenceDiagram
+    actor User
+    participant quote-engine
+    participant Local filesystem
+    participant PrusaSlicer CLI
+
+    User->>quote-engine: Opens WebSocket, requests a quote for file-id
+    quote-engine->>Local filesystem: Reads <file-id>.stl
+
+    alt file missing or not owned by this requester (AC-05 / AC-06)
+        Local filesystem-->>quote-engine: not found
+        quote-engine-->>User: WS push quote.error {code: quote.not_found} — same generic response either way, no existence leak
+    else file exists
+        Local filesystem-->>quote-engine: STL bytes
+        quote-engine->>PrusaSlicer CLI: Slices STL
+        alt unslicable geometry (AC-02) or exceeds fixed build volume (AC-04)
+            PrusaSlicer CLI-->>quote-engine: non-zero exit, or stats exceeding build-volume limits
+            quote-engine-->>User: WS push quote.error {code: quote.unslicable | quote.exceeds_build_volume}
+        end
+    end
+```
+
+<!-- Only 2 of the 5 AC-mapped flows drawn, per explicit user choice during the Socratic walk — on the low end of the 3-5 range typical for M-size, but still meets the "happy-path + ≥1 failure-mode flow" floor. -->
 
 ## 7. Deployment view
 
