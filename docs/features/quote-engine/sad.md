@@ -71,7 +71,7 @@ Quote-engine is a module inside the existing Print Marketplace Fastify monolith.
 | Actor or system | Type                                | Interaction                                                                                                                                   |
 | --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
 | user            | Person                              | Requests a quote for a previously uploaded model's file-id                                                                                    |
-| PrusaSlicer CLI | System (external, local subprocess) | Receives STL + fixed printer/material profile, returns G-code + slicing stats via stdout, or a non-zero exit on unslicable/oversized geometry |
+| PrusaSlicer CLI | System (external, local subprocess) | Receives STL + fixed printer/material profile, returns a G-code file whose trailing comments carry the stats, plus `--info` geometry facts; non-zero exit only for unreadable/corrupt files (oversized models exit 0 with no G-code; non-watertight models slice silently — see tasks/T4 "Verified CLI behavior") |
 
 **C4 Context (L1):**
 
@@ -117,7 +117,7 @@ src/modules/quote-engine/
 │   ├── quote-service.ts       <orchestrates: validate file-id → slice → parse → price → persist>
 │   ├── slicer-queue.ts        <in-process FIFO queue, single worker, ADR-0003>
 │   ├── slicer-service.ts      <PrusaSlicer CLI subprocess wrapper, timeout>
-│   ├── gcode-parser.ts        <stdout/G-code → {time_minutes, filament_grams}>
+│   ├── gcode-parser.ts        <--info output + G-code comments → {time_minutes, filament_grams} | non-manifold | exceeds-build-volume>
 │   └── pricing-service.ts     <reads config/pricing.json → {total_price, breakdown}>
 ├── config/
 │   └── pricing.json           <rate_per_hour, price_per_gram, margin_pct — see pricing-config.json>
@@ -166,7 +166,7 @@ sequenceDiagram
     quote-engine->>Local filesystem: Reads <file-id>.stl
     Local filesystem-->>quote-engine: STL bytes
     quote-engine->>PrusaSlicer CLI: Slices STL (local subprocess, fixed printer/material profile)
-    PrusaSlicer CLI-->>quote-engine: G-code + stats (time, filament grams)
+    PrusaSlicer CLI-->>quote-engine: G-code file (stats in trailing comments: time, filament grams) + --info facts
     quote-engine->>quote-engine: Applies pricing formula → price + breakdown
     quote-engine->>Firestore: Writes draft order (price, time, breakdown), keyed by file-id
     Firestore-->>quote-engine: ok
@@ -192,7 +192,7 @@ sequenceDiagram
         Local filesystem-->>quote-engine: STL bytes
         quote-engine->>PrusaSlicer CLI: Slices STL
         alt unslicable geometry (AC-02) or exceeds fixed build volume (AC-04)
-            PrusaSlicer CLI-->>quote-engine: non-zero exit, or stats exceeding build-volume limits
+            PrusaSlicer CLI-->>quote-engine: non-zero exit (corrupt file); or --info manifold = no (non-watertight); or exit 0 with no G-code / --info size beyond the bed (oversized)
             quote-engine-->>User: WS push quote.error {code: quote.unslicable | quote.exceeds_build_volume}
         end
     end

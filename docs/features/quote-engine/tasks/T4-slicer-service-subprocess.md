@@ -11,7 +11,7 @@ status: todo
 prd_refs: ["§6.1 Subprocess escape", "§6 NFR latency"]
 sad_refs: ["§2 PrusaSlicer CLI constraint", "§5", "§8 Subprocess safety row", "§11 Medium risk"]
 adr_refs: []
-note: "Scope extended post-initial-breakdown to add cancel() support for the FE 'Back to start' flow (T16) — see edits dated 2026-10-02."
+note: "Scope extended post-initial-breakdown to add cancel() support for the FE 'Back to start' flow (T16) — see edits dated 2026-10-02. Contract revised 2026-10-02 after testing the real PrusaSlicer 2.9.6 CLI: stats live in the G-code (not stdout), oversized models exit 0 with no output, non-watertight models slice silently — see _epic.md 'Scope amendment — verified PrusaSlicer behavior'."
 ---
 
 # T4 · `slicer-service` — PrusaSlicer CLI subprocess wrapper
@@ -24,6 +24,22 @@ This is the real work behind the whole feature: invoke PrusaSlicer CLI as a subp
 
 **Human checkpoint — not optional:** stl-parse-feature-plan.md's checkpoint #1 ("slicer wrapper verified on real files") and sad.md §11's Medium risk both require this wrapper to run against ≥1 real `.stl` fixture before the SAD's assumptions are treated as final. This task's DoD enforces that.
 
+## Verified CLI behavior (PrusaSlicer 2.9.6, macOS, tested 2026-10-02 with `../slicer-profile-pla.ini`)
+
+Measured against the real binary — the design below depends on these facts, not on assumptions. Re-verify if the pinned version changes.
+
+| Input | Command | Observed |
+|---|---|---|
+| Valid model | `prusa-slicer --load <profile> --export-gcode --output <out.gcode> <model.stl>` | Exit 0; stdout+stderr are ~10 progress lines (`10 => Processing triangulated mesh` … `Slicing result exported to <path>`) and contain **no time/filament stats**. The stats are **comments in the G-code**: `; estimated printing time (normal mode) = 29m 4s`, `; total filament used [g] = 4.26`, `; filament used [mm]`, `; filament used [cm3]`. Small model slices in ~1s. |
+| Oversized model (e.g. sample scaled ×10) | same | **Exit 0, no G-code file written**, message `All objects are outside of the print volume.` |
+| Non-watertight (cube with one triangle removed) | same | **Exit 0, G-code written, wrong stats** (0.26 g / 2m 22s vs 0.69 g / 6m 38s for the intact cube) — PrusaSlicer silently repairs. Only `--info` reveals it: `manifold = no`, `open_edges = 3`. |
+| Zero-thickness model | same | Exit 1, no G-code, `No layers were detected…` |
+| Random bytes with `.stl` name | same | Exit 1, no G-code, `…has the wrong size` / `Loading of a model file failed.` |
+| Empty file | same | Exit 2, no G-code, `The input is an empty file`. |
+| Any model | `prusa-slicer --load <profile> --info <model.stl>` | Prints `size_x/y/z`, `min_*/max_*`, `number_of_facets`, `manifold = yes|no`, `open_edges`, `volume` as `key = value` lines. |
+
+Other facts: the format is chosen from the file extension (input must end `.stl`; stored `<uuid>.stl` does); PrusaSlicer writes a temp file next to `--output` and renames it, so a per-job output directory is required; running with options but **no action** (`--export-gcode`/`--info`) launches the GUI — never invoke without an action. **Not yet verified:** SIGTERM behavior and leftover temp files on cancel (AC-ss-6), and headless operation on Linux/Docker/CI.
+
 ## Linked artifacts
 
 - PRD: [[../PRD.md]] §6.1 (subprocess escape abuse case, resource-exhaustion cap)
@@ -32,16 +48,19 @@ This is the real work behind the whole feature: invoke PrusaSlicer CLI as a subp
 
 ## Scope
 
-- Invoke PrusaSlicer CLI via `child_process.spawn` with an **argument array** (never a shell string) — fixed printer+material profile path, input STL path, output path.
+- Invoke PrusaSlicer CLI via `child_process.spawn` with an **argument array** (never a shell string) — `--load config/slicer-profile-pla.ini` (T1), an explicit action every time (`--info` or `--export-gcode`, never action-less), input STL path (must end `.stl`), and `--output` pointing into a **per-job temp directory** that the wrapper creates and the caller removes via `cleanup()`.
+- **Two subprocess calls per job, run sequentially inside the one queue slot (T7):** first `--info <stl>` (raw stdout returned; gives manifold/bounding-box facts for T5), then — only if `--info` exited 0 — `--export-gcode`. Both are covered by the same timeout and the same cancellation.
 - Pin whichever PrusaSlicer CLI release is current-stable at implementation time; record the exact version in the Dockerfile/deployment docs (sad.md §2 — not a fixed version number in the SAD itself).
 - Enforce a wall-clock timeout (kills the subprocess on expiry) — this is what makes "resource exhaustion via pathological geometry" a `quote.unslicable`-style blocked outcome (AC-02) instead of a hang.
 - **Cancellation (new — added for the FE "Back to start" flow, T16):** expose `sliceModel` as cancellable (e.g. accept an `AbortSignal`, or return `{ promise, cancel() }`). Calling cancel SIGTERM/SIGKILLs the live subprocess and resolves the promise with a `cancelled` result, distinct from `timedOut` and from a normal non-zero exit — T7 and T8 need to tell "user walked away" apart from "slice genuinely failed" so they don't write a Firestore draft or push a WS message for a cancelled job.
-- Return raw stdout + exit code to the caller; **not** responsible for parsing stats (that's T5) or deciding build-volume exceedance (also T5, from the parsed stats).
+- Return raw outputs only: `{ info: { exitCode, stdout }, slice: { exitCode, stdout, stderr } | null, gcodePath: string | null, timedOut, cancelled, cleanup() }`. `gcodePath` is non-null only if the file actually exists after the slice (exit 0 does **not** imply a file — see oversized row above). **Not** responsible for parsing `--info` output or G-code stats, nor for deciding non-manifold / build-volume outcomes (all T5).
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-ss-1 (successful slice):** Given a watertight STL fixture, when sliced, then the wrapper returns exit code 0 and non-empty stdout/G-code output.
-- [ ] **AC-ss-2 (unslicable geometry):** Given a non-watertight/corrupt STL fixture, when sliced, then the wrapper returns a non-zero exit code without throwing an uncaught exception.
+- [ ] **AC-ss-1 (successful slice):** Given a watertight STL fixture, when sliced, then `info.exitCode` and `slice.exitCode` are 0 and `gcodePath` points to an existing, non-empty G-code file; `cleanup()` removes it.
+- [ ] **AC-ss-2 (unreadable/corrupt geometry):** Given an empty, random-bytes, or zero-thickness STL fixture, when run, then the wrapper returns a non-zero exit code (info or slice stage), `gcodePath: null`, and does not throw. (Non-watertight and oversized models are **not** failures at this layer — they exit 0; T5 classifies them. See AC-ss-8/9.)
+- [ ] **AC-ss-8 (oversized model → no output file):** Given a model larger than the bed, when sliced, then the wrapper returns `slice.exitCode` 0, `gcodePath: null`, and the slicer's `All objects are outside of the print volume.` text in `slice.stdout`/`stderr` — passed through verbatim for T5.
+- [ ] **AC-ss-9 (non-watertight model passes through):** Given a model with `manifold = no`, when run, then `info.stdout` contains that `manifold = no` line and the slice still completes (exit 0, `gcodePath` set) — the wrapper does not reject it; the decision is T5/T8's.
 - [ ] **AC-ss-3 (timeout):** Given a slice that exceeds the configured wall-clock timeout, when the timeout fires, then the subprocess is killed and the wrapper resolves with a timeout result distinguishable from a normal non-zero exit.
 - [ ] **AC-ss-4 (no shell interpolation):** The implementation uses `spawn(cmd, argsArray)`, never `exec` with a concatenated string — confirmed by code review, not just tests.
 - [ ] **AC-ss-5 (real-file checkpoint):** At least one real `.stl` fixture (not synthetic/hand-built) is sliced successfully in a test or a documented manual run, closing stl-parse-feature-plan.md checkpoint #1 for this wrapper.
@@ -51,10 +70,10 @@ This is the real work behind the whole feature: invoke PrusaSlicer CLI as a subp
 ## Checklist
 
 - [ ] Step 1 — Confirm PrusaSlicer CLI is installed/available in the dev + CI environment (document the install step if CI needs it added).
-- [ ] Step 2 — Implement `sliceModel(stlPath, outputPath, timeoutMs): Promise<{exitCode, stdout, timedOut}>` using `spawn` + an argument array.
-- [ ] Step 3 — Wire the timeout via `AbortController` or a manual `setTimeout` + `kill()`.
-- [ ] Step 4 — Unit tests with synthetic fixtures for AC-ss-1/2/3/4.
-- [ ] Step 5 — Run against ≥1 real `.stl` file (download or author one) and record the result in the PR description — this satisfies AC-ss-5 / the human checkpoint.
+- [ ] Step 2 — Implement `sliceModel(stlPath, timeoutMs, signal?)` returning the shape in Scope, using `spawn` + an argument array: `--info` first, then `--export-gcode` into a per-job `mkdtemp` directory.
+- [ ] Step 3 — Wire the timeout via `AbortController` or a manual `setTimeout` + `kill()`, covering both subprocess calls.
+- [ ] Step 4 — Unit/integration tests for AC-ss-1/2/3/4/8/9. Fixtures can be generated in the test (ASCII STL cube; cube minus one triangle for non-watertight; the same cube scaled past the bed for oversized; empty file; random bytes) — see the behavior table for expected outcomes.
+- [ ] Step 5 — Run against ≥1 real `.stl` file (the table above was produced with a real stored upload; record the run in the PR description) — this satisfies AC-ss-5 / the human checkpoint.
 - [ ] Step 6 — Implement `cancel()`/`AbortSignal` support (SIGTERM, with a SIGKILL fallback after a short grace period if the process doesn't exit).
 - [ ] Step 7 — Unit tests for AC-ss-6/7.
 
@@ -64,6 +83,8 @@ This is the real work behind the whole feature: invoke PrusaSlicer CLI as a subp
 |---|---|
 | PrusaSlicer binary missing from `PATH` | Fail fast at module load (like T3's credential check) — not a per-request mystery error. |
 | STL file deleted between T2's read and T4's slice (race) | Out of scope here — T2 already returned bytes; T4 operates on a path or buffer T2 handed off, so this race is T8's (orchestrator) concern if it exists at all. |
+| Killed/cancelled/timed-out job | `cleanup()` must still remove the per-job temp directory (PrusaSlicer leaves a temp file next to `--output` if killed mid-write — unverified, assume it does). |
+| Action-less invocation | Would launch the PrusaSlicer GUI and hang the worker — covered by always passing `--info` or `--export-gcode`; add a test asserting the argument array always contains one of them. |
 | Oversized STL (near the 50MB stl-upload cap) slicing slowly | Covered by the timeout (AC-ss-3), not a separate size check in this task. |
 
 ## Definition of Done

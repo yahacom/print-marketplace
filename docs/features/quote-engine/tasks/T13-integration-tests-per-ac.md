@@ -31,8 +31,8 @@ sad.md §10 QG-3's verify method is explicit: "integration tests per AC with fix
 
 Build or source the fixture STL files sad.md §10 names and run each through the real `buildApp()` + a real WS client end-to-end, asserting exact AC outcomes:
 
-1. Non-watertight STL → `quote.unslicable` (AC-02).
-2. Oversized STL (exceeds fixed build volume) → `quote.exceeds_build_volume` (AC-04).
+1. Non-watertight STL → `quote.unslicable` (AC-02). Fixture: a valid ASCII-STL cube with **one triangle removed** (`manifold = no`, `open_edges = 3`). Real PrusaSlicer slices it with exit 0 and wrong stats, so this scenario proves the `--info` manifold check works end-to-end, not just that the slicer fails. Also cover one corrupt-file case (random bytes or empty file → non-zero exit → `quote.unslicable`).
+2. Oversized STL (exceeds fixed build volume) → `quote.exceeds_build_volume` (AC-04). Fixture: a valid watertight cube larger than the profile's bed (e.g. 300 mm on a side vs the 250×210×220 bed). Real PrusaSlicer exits 0 and writes no G-code for this — the scenario proves the classification doesn't rely on exit code.
 3. Missing file-id (never uploaded) → `quote.not_found` (AC-05).
 4. Foreign file-id (valid format, but no matching stored file — simulating "not owned") → `quote.not_found`, byte-identical to case 3 (AC-06).
 5. Valid, printable fixture → full success payload with breakdown (AC-01, AC-03).
@@ -44,7 +44,7 @@ Build or source the fixture STL files sad.md §10 names and run each through the
 
 ## Checklist
 
-- [ ] Step 1 — Source/author the fixture STL files (non-watertight, oversized, valid-small) — check the repo for existing STL fixtures from `stl-upload`'s tests first, reuse where the shape fits, author only what's missing.
+- [ ] Step 1 — Source/author the fixture STL files (non-watertight, oversized, valid-small) — check the repo for existing STL fixtures from `stl-upload`'s tests first, reuse where the shape fits, author only what's missing. Generate the cube fixtures programmatically (ASCII STL, 12 triangles; drop one for non-watertight; scale vertices for oversized) rather than committing binaries; the valid-small case can be the intact cube. The expected PrusaSlicer behavior for each is tabulated in T4's "Verified CLI behavior".
 - [ ] Step 2 — Write the 5 integration-test scenarios against `buildApp()` with a real `STORAGE_DIR` and a real (or test-pinned) PrusaSlicer invocation.
 - [ ] Step 3 — Assert AC-it-6 for every scenario.
 
@@ -53,6 +53,7 @@ Build or source the fixture STL files sad.md §10 names and run each through the
 | Case | Behavior |
 |---|---|
 | CI environment lacking PrusaSlicer CLI | This test suite requires PrusaSlicer installed in CI — if not already true from T4's checklist, this task's DoD includes confirming CI has it (coordinate with T4; don't duplicate the install step, just verify it's there). |
+| Slow slice in CI | A small cube slices in about 1s locally (measured); keep fixtures small so this suite stays fast. |
 
 ## Definition of Done
 

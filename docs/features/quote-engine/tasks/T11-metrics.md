@@ -51,6 +51,7 @@ Extend `src/metrics.ts` with:
 | Case | Behavior |
 |---|---|
 | Metrics endpoint scraped mid-slice | Queue depth gauge must reflect the in-flight state at scrape time — this is why it's a gauge, not a counter. |
+| Oversized or non-watertight models (verified PrusaSlicer behavior, see T4) | These exit 0, so `quote_slicer_exit_code{code="0"}` counts them as successes; the exit-code metric alone cannot show blocked-quote rates. Not a defect of this task — AC-mt-3 stays as written — but don't use this metric to infer quote success rate. |
 
 ## Definition of Done
 

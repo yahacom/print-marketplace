@@ -48,6 +48,16 @@ The user requested the frontend "Slicing..." wait-state + "Back to start" flow a
 
 Each amended task file carries a `note:` frontmatter field pointing back to this entry for traceability.
 
+## Scope amendment 2026-10-02 — verified PrusaSlicer behavior (T1, T4, T5, T8, T11, T13)
+
+After installing PrusaSlicer 2.9.6 and testing the real CLI with a fixed PLA profile (`../slicer-profile-pla.ini`; helper `../slice-info.sh`), three assumptions in the original breakdown and SAD turned out to be wrong (full table in T4's "Verified CLI behavior"):
+
+1. **Stats are not on stdout** — print time and filament grams are comments in the G-code file. → T4 returns the G-code path; T5 parses the file.
+2. **An oversized model exits 0 and writes no G-code** (message: `All objects are outside of the print volume.`), so "non-zero exit" cannot detect AC-04. → T5 classifies it (message and/or `--info` size vs the profile's bed).
+3. **A non-watertight model slices "successfully" with exit 0 and silently wrong stats** (0.26 g vs 0.69 g in the test). Only `--info` (`manifold = no`) reveals it. → T4 runs `--info` before slicing; T5 returns `non_manifold`; T8 maps it to `quote.unslicable`. **Product decision (2026-10-02): reject non-watertight models rather than quote the auto-repaired mesh.**
+
+Amendments: **T1** also scaffolds `config/slicer-profile-pla.ini`; **T4** new return contract, `--info` pre-step, per-job temp dir + `cleanup()`, AC-ss-2 narrowed and AC-ss-8/9 added; **T5** retitled, four result kinds, AC-gp-1..4; **T8** failure mapping + `cleanup()` in `finally`; **T11** and **T13** edge-case/fixture notes. Still unverified (carried in T4): SIGTERM/temp-file behavior on cancel, and headless operation on Linux/Docker/CI. `sad.md` §3/§5/§6 corrected to match.
+
 ## Waves
 
 | Wave | Tasks | Parallel | Goal |
