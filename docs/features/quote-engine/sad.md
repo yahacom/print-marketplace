@@ -98,45 +98,48 @@ Each tactical decision in later sections should be traceable to one of these str
 
 ## 5. Building block view
 
-<!-- 🎯 Навіщо: ВНУТРІШНЯ ДЕКОМПОЗИЦІЯ — модулі, контейнери, БД. Статична топологія:   -->
-<!--           хто з ким може говорити. Без §5 §6 (сценарії) не має словника учасників. -->
-<!-- 📋 Що писати: 1 абзац про стиль (шари/гексагональна/clean/на подіях) +            -->
-<!--           дерево папок + Mermaid C4Container.                                       -->
-<!-- 📌 Приклад: «web-app, content-api, media-worker, postgres, s3, cdn».                -->
-
-<One paragraph: layered / hexagonal / clean / event-driven. Why.>
+Simple layered style (routes → services → repositories), following the precedent set in stl-upload (ADR-0004). quote-engine is a new, self-contained module alongside stl-upload in the same Fastify monolith — no hexagonal/ports-and-adapters split, consistent with the existing single-module-count rationale in that ADR.
 
 **Internal decomposition:**
 
 ```
-<e.g. internal/modules/goals/>
-├── domain/       <entities + sentinel errors>
-├── app/          <use cases / services>
-├── infra/        <repository + outbox impl>
-├── ports/        <HTTP handlers, DTOs, error mapping>
-└── module.go     <self-wiring>
+src/modules/quote-engine/
+├── module.ts                  <FastifyPluginAsync — registers WS route + rate limit>
+├── routes/
+│   ├── quote-routes.ts        <WS handshake, delegates to quote-service>
+│   └── rate-limit.ts          <reuse stl-upload's pattern, own counter>
+├── services/
+│   ├── quote-service.ts       <orchestrates: validate file-id → slice → parse → price → persist>
+│   ├── slicer-service.ts      <PrusaSlicer CLI subprocess wrapper, timeout>
+│   ├── gcode-parser.ts        <stdout/G-code → {time_minutes, filament_grams}>
+│   └── pricing-service.ts     <config-driven formula → {total_price, breakdown}>
+└── repositories/
+    ├── model-reader.ts        <reads <file-id>.stl from shared STORAGE_DIR, SAFE_FILE_ID-checked>
+    └── quote-repository.ts    <Firestore draft-order writes, ADR-0002>
 ```
 
 **C4 Container (L2):**
 
 ```mermaid
 C4Container
-    title <system> — Containers
+    title quote-engine — Containers
 
-    Person(user, "<User>")
+    Person(user, "User")
 
-    Container_Boundary(boundary, "<Our System>") {
-        Container(web, "<Web/API container>", "<technology>", "<purpose>")
-        Container(svc, "<Service container>", "<technology>", "<purpose>")
-        ContainerDb(db, "<DB>", "<technology>", "<purpose>")
+    Container_Boundary(marketplace, "Print Marketplace backend (Fastify monolith)") {
+        Container(stlupload, "stl-upload module", "Node/TS", "Format/size validation, stores STL by file-id")
+        Container(quoteengine, "quote-engine module", "Node/TS", "WS endpoint, slicer invocation, pricing, Firestore writes")
     }
 
-    System_Ext(ext, "<External>", "<purpose>")
+    ContainerDb(fs, "Local filesystem", "STORAGE_DIR", "model files, <file-id>.stl")
+    ContainerDb(firestore, "Firestore", "Google Cloud managed NoSQL", "draft-order documents, keyed by shared file-id (ADR-0002)")
+    System_Ext(slicer, "PrusaSlicer CLI", "third-party slicer binary, local subprocess")
 
-    Rel(user, web, "<interaction>", "<protocol>")
-    Rel(web, svc, "<service calls>")
-    Rel(svc, db, "<reads/writes>", "<driver>")
-    Rel(svc, ext, "<emits>", "<protocol>")
+    Rel(user, quoteengine, "Opens WS, requests a quote for a file-id", "WebSocket")
+    Rel(stlupload, fs, "Writes validated STL", "fs")
+    Rel(quoteengine, fs, "Reads STL directly, no API call to stl-upload", "fs")
+    Rel(quoteengine, slicer, "Slices STL, reads G-code + stats", "local subprocess")
+    Rel(quoteengine, firestore, "Writes draft order (price/time/breakdown)", "firebase-admin SDK")
 ```
 
 ## 6. Runtime view
