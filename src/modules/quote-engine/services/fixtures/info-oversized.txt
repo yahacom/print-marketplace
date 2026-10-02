@@ -1,0 +1,14 @@
+[huge.stl]
+size_x = 400.000000
+size_y = 400.000000
+size_z = 400.000000
+min_x = 0.000000
+min_y = 0.000000
+min_z = 0.000000
+max_x = 400.000000
+max_y = 400.000000
+max_z = 400.000000
+number_of_facets = 12
+manifold = yes
+number_of_parts =  1
+volume = 64000004.000000

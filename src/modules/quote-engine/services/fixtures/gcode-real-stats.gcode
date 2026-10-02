@@ -1,0 +1,11 @@
+; filament used [mm] = 1429.69
+; filament used [cm3] = 3.44
+; filament used [g] = 4.26
+; filament cost = 0.11
+; total filament used [g] = 4.26
+; total filament cost = 0.11
+; total filament used for wipe tower [g] = 0.00
+; estimated printing time (normal mode) = 29m 4s
+; estimated printing time (silent mode) = 29m 58s
+; estimated first layer printing time (normal mode) = 1m 13s
+; estimated first layer printing time (silent mode) = 1m 15s

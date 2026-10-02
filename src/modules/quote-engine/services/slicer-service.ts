@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 // parsing --info / G-code and classifying outcomes belongs to gcode-parser (T5).
 
 const SLICER_BIN = process.env.PRUSA_SLICER_BIN ?? "prusa-slicer";
-const PROFILE_PATH = join(
+export const SLICER_PROFILE_PATH = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "config",
@@ -115,11 +115,11 @@ export const sliceModel = async (
   let slice: SliceStageOutput | null = null;
   try {
     // Always pass an explicit action: an action-less call launches the GUI.
-    info = await run(["--load", PROFILE_PATH, "--info", stlPath]);
+    info = await run(["--load", SLICER_PROFILE_PATH, "--info", stlPath]);
     if (info.exitCode === 0 && !state.interruption) {
       slice = await run([
         "--load",
-        PROFILE_PATH,
+        SLICER_PROFILE_PATH,
         "--export-gcode",
         "--output",
         outputPath,
@@ -151,7 +151,7 @@ export const sliceModel = async (
 // service at boot, not surface as a per-request error. T10 calls this when
 // registering the module.
 export const assertSlicerAvailable = async (): Promise<void> => {
-  await access(PROFILE_PATH);
+  await access(SLICER_PROFILE_PATH);
   const { exitCode, stderr } = await runSlicer(["--help"], () => {});
   if (exitCode !== 0) {
     throw new Error(`PrusaSlicer binary "${SLICER_BIN}" is not usable: ${stderr}`);

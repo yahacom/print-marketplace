@@ -1,0 +1,14 @@
+[5563e27d-97e4-4b93-a605-1b67c13623eb.stl]
+size_x = 47.566012
+size_y = 21.565994
+size_z = 16.318001
+min_x = 15.473950
+min_y = 79.581696
+min_z = 0.000000
+max_x = 63.039963
+max_y = 101.147690
+max_z = 16.318001
+number_of_facets = 301428
+manifold = yes
+number_of_parts =  2
+volume = 7467.658203

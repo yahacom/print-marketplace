@@ -1,0 +1,15 @@
+[open.stl]
+size_x = 20.000000
+size_y = 20.000000
+size_z = 20.000000
+min_x = 0.000000
+min_y = 0.000000
+min_z = 0.000000
+max_x = 20.000000
+max_y = 20.000000
+max_z = 20.000000
+number_of_facets = 11
+manifold = no
+open_edges = 3
+number_of_parts =  1
+volume = 8000.000488
