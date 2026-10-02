@@ -139,5 +139,5 @@ Reusable patterns from `stl-upload`: the same Fastify/TS layering (routes → se
 
 ## 8. Open questions
 
-- [ ] Формула ціни (ставка/год, ціна/грам, %маржі) потребує явного підтвердження product owner — §5 AC та §6 NFR зараз описують лише бізнес-спостережувані наслідки (точність ±5%, видимість breakdown), без самих чисел формули. Default зараз: формула не зафіксована. — owner: Yakiv Vakoliuk (product owner), due: перед sdlc:architecture-design.
-- [ ] Чи потрібно явно позначати в UI, яка саме конфігурація принтер+матеріал використовується (idea-brief §15), якщо в майбутньому з'явиться друга. Default зараз: не позначається явно (одна фіксована конфігурація, без UI-індикатора). — owner: Yakiv Vakoliuk (product owner), due: перед sdlc:architecture-design.
+- [x] ~~Формула ціни (ставка/год, ціна/грам, %маржі) потребує явного підтвердження product owner~~ — **Resolved 2026-10-02**: `rate_per_hour = 2.5 USD`, `price_per_gram = 0.02 USD`, `margin_pct = 20`. Confirmed by product owner during `sad.md` finalization. Values live in `docs/features/quote-engine/pricing-config.json`, referenced from `sad.md` §5/§11.
+- [x] ~~Чи потрібно явно позначати в UI, яка саме конфігурація принтер+матеріал використовується~~ — **Resolved 2026-10-02**: ні, не позначається (default stands — single fixed configuration, no UI indicator). Confirmed during `sad.md` §11 resolution.

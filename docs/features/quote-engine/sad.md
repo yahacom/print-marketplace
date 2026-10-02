@@ -42,7 +42,7 @@ ticket: "<TBD>"
 - `@fastify/multipart`, `@fastify/static` already in use (stl-upload); no new HTTP-layer dependency expected.
 - Filesystem-only persistence for model files (`STORAGE_DIR`) — no relational database anywhere in the repo (CLAUDE.md, confirmed by Explore scan: no Prisma/Drizzle/SQL). **Firestore is used for quote/draft-order persistence** (ADR-0002, §4) — a deliberate part of this feature's own architecture, not a deviation to be flagged away; see §9/§11 for the cross-feature follow-up it requires.
 - Layered convention: `routes/` → `services/` → `repositories/`, per ADR-0004 (stl-upload).
-- New dependency: PrusaSlicer CLI, invoked as an untrusted-input subprocess (stl-parse-feature-plan.md). **No version pinned anywhere in the repo yet** — flagged as a risk in §11 (ties to stl-parse-feature-plan.md human checkpoint #1: wrapper not yet verified against real .stl files).
+- New dependency: PrusaSlicer CLI, invoked as an untrusted-input subprocess (stl-parse-feature-plan.md). **Version-pin policy: pin whichever PrusaSlicer CLI release is current-stable at implementation time**, recorded in the Dockerfile/deployment docs at that point — not a fixed version number in this SAD. The wrapper still needs verification against real .stl files regardless of which version is pinned (stl-parse-feature-plan.md human checkpoint #1, tracked in §11).
 
 **Organisational.**
 - Solo maintainer (Yakiv Vakoliuk), no on-call (inherited from stl-upload, PRD §6 Availability row).
@@ -89,7 +89,7 @@ C4Context
 
 1. **WebSocket push for the quote result** (ADR-0001) — the browser opens a WebSocket for a quote request and the server pushes `quote.done` / `quote.error` when the up-to-60s PrusaSlicer subprocess finishes, instead of holding an HTTP connection open or polling. Avoids the HTTP/proxy-timeout risk of a 60s blocking request while staying simpler than building a job-store + polling endpoint. Requires a new `@fastify/websocket` dependency and a new client-side pattern in `src/ui/`.
 
-2. **Concurrency control for the shared PrusaSlicer subprocess** — deliberately left open (see §11 "Open architectural decision: concurrency model for PrusaSlicer invocations"). Candidates considered: an in-process FIFO queue with a single worker (zero new infra, matches the NFR's "≥1 concurrent, rest queue" literally) vs. a bounded worker pool (more throughput, more complexity the NFR doesn't currently require). Resolve before `sdlc:break-tasks` — this gates §7 Deployment's scaling-threshold wording.
+2. **In-process FIFO queue, single worker, for the shared PrusaSlicer subprocess** (ADR-0003) — resolved after the initial Socratic pass left it open. One async loop holds pending quote requests in memory and runs exactly one PrusaSlicer subprocess at a time; additional requests wait their turn rather than running concurrently. Zero new infrastructure, matches the NFR's "≥1 concurrent, rest queue" literally, and mirrors the existing in-memory rate-limiter pattern. Fixes §7's scaling threshold as a hard single-instance constraint, not a conditional one.
 
 3. **Persist the quote as a Firestore draft order, reusing order-confirmation's shared id** (ADR-0002) — quote-engine writes the computed price/time/breakdown into Firestore keyed by the same UUID v4 file-id that stl-upload minted and order-confirmation already expects to reuse (order-confirmation ADR-0003), so order-confirmation's later confirm step can act on an existing draft instead of re-deriving the quote. **This is a deliberate, explicit override of order-confirmation's own already-Accepted architecture** (ADR-0001 Firestore-for-orders-only, ADR-0002 in-process live recomputation, ADR-0004 exactly-once-via-`create()`, and data-model.md's "No persisted quote snapshot") — the product owner chose to proceed with Firestore-at-quote-time now and revisit order-confirmation's docs afterward, rather than follow the already-accepted "stateless, recompute live" design. Tracked as a High-severity risk in §11, not an open question, because the decision itself is made — the follow-up rework is the open item.
 
@@ -111,9 +111,12 @@ src/modules/quote-engine/
 │   └── rate-limit.ts          <reuse stl-upload's pattern, own counter>
 ├── services/
 │   ├── quote-service.ts       <orchestrates: validate file-id → slice → parse → price → persist>
+│   ├── slicer-queue.ts        <in-process FIFO queue, single worker, ADR-0003>
 │   ├── slicer-service.ts      <PrusaSlicer CLI subprocess wrapper, timeout>
 │   ├── gcode-parser.ts        <stdout/G-code → {time_minutes, filament_grams}>
-│   └── pricing-service.ts     <config-driven formula → {total_price, breakdown}>
+│   └── pricing-service.ts     <reads config/pricing.json → {total_price, breakdown}>
+├── config/
+│   └── pricing.json           <rate_per_hour, price_per_gram, margin_pct — see pricing-config.json>
 └── repositories/
     ├── model-reader.ts        <reads <file-id>.stl from shared STORAGE_DIR, SAFE_FILE_ID-checked>
     └── quote-repository.ts    <Firestore draft-order writes, ADR-0002>
@@ -195,7 +198,7 @@ sequenceDiagram
 
 ## 7. Deployment view
 
-quote-engine deploys inside the same single Fastify process as stl-upload — no new deploy unit. **Scaling threshold: single instance only, as long as the PrusaSlicer-concurrency mechanism (§11 open architectural decision) ends up being the in-memory FIFO-queue option** — a second instance would run its own independent queue and have no visibility into the first instance's in-flight slice, defeating the "≥1 concurrent, rest queue" NFR guarantee across instances. If the open decision instead resolves to an external job queue (e.g. BullMQ+Redis), this threshold is lifted — but that is not decided yet.
+quote-engine deploys inside the same single Fastify process as stl-upload — no new deploy unit. **Scaling threshold: single instance only** (ADR-0003) — the in-memory FIFO queue bounding PrusaSlicer concurrency lives in one process's memory, so a second instance would run its own independent queue with no visibility into the first instance's in-flight slice, defeating the "≥1 concurrent, rest queue" NFR guarantee across instances. Lifting this requires superseding ADR-0003 with an external job queue — not planned for this MVP.
 
 **Monitoring:**
 - Metrics — extend `src/metrics.ts`'s existing Prometheus pattern with: `quote_slice_duration_seconds` (histogram, buckets to 60s+Inf, mirrors the existing `http_request_duration_seconds` bucket shape), `quote_slicer_queue_depth` (gauge), `quote_slicer_exit_code` (counter, labeled by exit code).
@@ -203,7 +206,7 @@ quote-engine deploys inside the same single Fastify process as stl-upload — no
 - Tracing — none beyond existing Fastify request logging (`src/request-logging.ts`); no OpenTelemetry in this repo.
 
 **Scaling thresholds:**
-- Single instance only, pending resolution of the concurrency-model open decision (§11).
+- Single instance only (ADR-0003) — fixed, not conditional.
 - No table/row-count scaling concern — quote-engine has no relational storage; Firestore draft-order writes scale with request volume, not with any schema-level ceiling.
 
 <!-- Not N/A — this feature does change deployment-relevant scaling guidance (single-instance ceiling), even though the deploy unit itself is unchanged. -->
@@ -228,6 +231,7 @@ quote-engine deploys inside the same single Fastify process as stl-upload — no
 |---|---|---|---|
 | 0001 | Push the quote result to the browser over WebSocket instead of a blocking HTTP request | Accepted | §4 |
 | 0002 | Persist the computed quote to Firestore as a draft order, keyed by the shared file-id | Accepted | §4 |
+| 0003 | Use an in-process FIFO queue with a single worker to bound concurrent PrusaSlicer invocations | Accepted | §4 |
 
 ADR files live under `docs/features/quote-engine/adr/NNNN-<title>.md`.
 
@@ -252,17 +256,16 @@ Each top-3 goal from §1 expanded into a full scenario:
 
 ## 11. Risks and technical debt
 
+Resolved since the initial Socratic pass (see §4, §7, ADR-0003, `pricing-config.json`): concurrency model (in-process FIFO queue, ADR-0003), PrusaSlicer version-pin policy (§2: pin current-stable at implementation time), pricing formula rates (rate_per_hour=2.5 USD, price_per_gram=0.02 USD, margin_pct=20 — `../pricing-config.json`), UI config indicator (PRD §8 default confirmed: no indicator), Firestore draft-order retention (confirmed: no automatic cleanup for MVP — moved to Accepted debt below).
+
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| Open architectural decision: concurrency model for PrusaSlicer invocations (in-process FIFO queue vs. bounded worker pool vs. external job queue) | Open question | Resolve before `sdlc:break-tasks`; gates §7's single-instance scaling threshold | Yakiv Vakoliuk |
-| order-confirmation's already-Accepted architecture (ADR-0001/0002/0004, data-model.md) is now stale — it assumed quote-engine persists nothing and recomputes live; ADR-0002 here persists a draft order instead | High | Re-run the relevant parts of order-confirmation's architecture-design / data-model pass (`create()`-based exactly-once needs a transaction-based replacement once a draft doc pre-exists) before implementing either feature | Yakiv Vakoliuk |
-| Open architectural decision: pricing formula rates (rate/hour, price/gram, margin %) not yet confirmed (PRD §8) | Open question | Resolve before `sdlc:break-tasks`; formula *shape* (config-driven time×rate + material×price + margin) is fixed, only the numbers are open | Yakiv Vakoliuk (Product Owner) |
-| Open architectural decision: whether UI should indicate which printer/material configuration is in use (PRD §8) | Open question | Resolve before `sdlc:break-tasks`; default today is no indicator (single fixed config) | Yakiv Vakoliuk (Product Owner) |
-| PrusaSlicer CLI has no pinned version anywhere in the repo, and the slicer wrapper has not been verified against real .stl files yet (stl-parse-feature-plan.md human checkpoint #1) | Medium | Pin a PrusaSlicer CLI version in deployment docs/Dockerfile before implementation; run the wrapper against a real-file corpus before this SAD's decisions are treated as final | Yakiv Vakoliuk |
-| Firestore draft-order retention is undefined (ADR-0002) — a quote that's never confirmed leaves an orphaned draft document indefinitely | Medium | Define a TTL or cleanup policy for unconfirmed drafts before `sdlc:generate-data-model` for this feature | Yakiv Vakoliuk |
+| order-confirmation's already-Accepted architecture (ADR-0001/0002/0004, data-model.md) is now stale — it assumed quote-engine persists nothing and recomputes live; ADR-0002 here persists a draft order instead | High | **Scoped as a separate `sdlc:architecture-design` pass for order-confirmation** — not resolved within this SAD. Must run before either feature is implemented. | Yakiv Vakoliuk |
+| PrusaSlicer wrapper has not been verified against real .stl files yet (stl-parse-feature-plan.md human checkpoint #1) — independent of which version gets pinned | Medium | Run the wrapper against a real-file corpus before this SAD's decisions are treated as final | Yakiv Vakoliuk |
 
 **Accepted debt (acceptable in v1, plan to fix later):**
-- No multi-instance scaling for quote-engine as long as the concurrency model resolves to an in-memory queue (§7) — acceptable for a solo-maintainer MVP with no stated multi-instance requirement.
+- No multi-instance scaling for quote-engine — ADR-0003's in-process queue is a hard single-instance ceiling (§7). Acceptable for a solo-maintainer MVP with no stated multi-instance requirement; superseding ADR-0003 is the escape hatch if that changes.
+- No automatic cleanup of unconfirmed Firestore draft orders (ADR-0002) — drafts accumulate indefinitely if never confirmed. Acceptable for MVP; a TTL policy is a cheap follow-up once real usage data shows it's needed.
 - Quote determinism between the browser-facing quote and any later re-derivation is assumed, not verified — if PrusaSlicer or the pricing formula ever produce a different result for the same input between two calls, nothing in this SAD currently detects that drift.
 
 ## 12. Glossary
