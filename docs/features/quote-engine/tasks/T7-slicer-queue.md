@@ -7,7 +7,7 @@ priority: Must
 estimate: S
 blocks: [T8, T11]
 blocked_by: [T4]
-status: todo
+status: done
 prd_refs: ["§6 NFR throughput"]
 sad_refs: ["§4 strategic choice 2", "§7"]
 adr_refs: ["0003"]
@@ -37,20 +37,20 @@ PrusaSlicer is CPU-heavy; running two slices concurrently blows the p95 ≤60s t
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-sq-1 (single worker):** Given 3 jobs enqueued near-simultaneously, when processed, then PrusaSlicer subprocesses never run concurrently — confirmed by instrumenting T4's wrapper calls in a test (e.g. asserting no overlap in start/end timestamps).
-- [ ] **AC-sq-2 (FIFO order):** Given jobs A, B, C enqueued in that order, when processed, then they complete in submission order (not reordered by slice duration).
-- [ ] **AC-sq-3 (queue depth readable):** Given N jobs are pending (not yet started) plus 1 running, when queried, then the depth reflects the pending count accurately at any point mid-processing.
-- [ ] **AC-sq-4 (one job's failure doesn't block the queue):** Given job A fails (non-zero exit or timeout, from T4), when the queue continues, then job B still runs — a failed slice doesn't wedge the worker loop.
-- [ ] **AC-sq-5 (cancel a pending job):** Given job B is still waiting behind running job A, when `cancel(B.id)` is called, then B's promise resolves `cancelled` immediately, B never reaches T4's `sliceModel`, and the queue depth drops accordingly.
-- [ ] **AC-sq-6 (cancel the running job):** Given job A is currently slicing, when `cancel(A.id)` is called, then T4's `cancel()` is invoked for A, A's promise resolves `cancelled`, and the worker immediately starts the next pending job without waiting for A's original timeout.
+- [x] **AC-sq-1 (single worker):** Given 3 jobs enqueued near-simultaneously, when processed, then PrusaSlicer subprocesses never run concurrently — confirmed by instrumenting T4's wrapper calls in a test (e.g. asserting no overlap in start/end timestamps).
+- [x] **AC-sq-2 (FIFO order):** Given jobs A, B, C enqueued in that order, when processed, then they complete in submission order (not reordered by slice duration).
+- [x] **AC-sq-3 (queue depth readable):** Given N jobs are pending (not yet started) plus 1 running, when queried, then the depth reflects the pending count accurately at any point mid-processing.
+- [x] **AC-sq-4 (one job's failure doesn't block the queue):** Given job A fails (non-zero exit or timeout, from T4), when the queue continues, then job B still runs — a failed slice doesn't wedge the worker loop.
+- [x] **AC-sq-5 (cancel a pending job):** Given job B is still waiting behind running job A, when `cancel(B.id)` is called, then B's promise resolves `cancelled` immediately, B never reaches T4's `sliceModel`, and the queue depth drops accordingly.
+- [x] **AC-sq-6 (cancel the running job):** Given job A is currently slicing, when `cancel(A.id)` is called, then T4's `cancel()` is invoked for A, A's promise resolves `cancelled`, and the worker immediately starts the next pending job without waiting for A's original timeout.
 
 ## Checklist
 
-- [ ] Step 1 — Implement an in-memory array/linked-list job queue + a single always-running worker loop (`while (true) { await processNext() }` shape, or an async generator — match whatever's idiomatic for this codebase's existing in-memory rate-limiter in `routes/rate-limit.ts` from `stl-upload`).
-- [ ] Step 2 — Implement `enqueue` returning a Promise resolved/rejected by the worker once that job's slice completes.
-- [ ] Step 3 — Expose `getQueueDepth(): number`.
-- [ ] Step 4 — Implement `cancel(jobId)` per the two branches above (pending-removal vs. running-cancel-via-T4).
-- [ ] Step 5 — Unit tests for AC-sq-1..6, mocking T4's `sliceModel` with controllable delays to simulate concurrency, ordering, and cancellation.
+- [x] Step 1 — Implement an in-memory array/linked-list job queue + a single always-running worker loop (`while (true) { await processNext() }` shape, or an async generator — match whatever's idiomatic for this codebase's existing in-memory rate-limiter in `routes/rate-limit.ts` from `stl-upload`).
+- [x] Step 2 — Implement `enqueue` returning a Promise resolved/rejected by the worker once that job's slice completes.
+- [x] Step 3 — Expose `getQueueDepth(): number`.
+- [x] Step 4 — Implement `cancel(jobId)` per the two branches above (pending-removal vs. running-cancel-via-T4).
+- [x] Step 5 — Unit tests for AC-sq-1..6, mocking T4's `sliceModel` with controllable delays to simulate concurrency, ordering, and cancellation.
 
 ## Edge cases
 
@@ -62,5 +62,13 @@ PrusaSlicer is CPU-heavy; running two slices concurrently blows the p95 ≤60s t
 
 ## Definition of Done
 
-- [ ] All AC green, including a concurrency-assertion test (not just "it ran successfully").
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green, including a concurrency-assertion test (not just "it ran successfully").
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- API: `createSlicerQueue(slice?, timeoutMs?)` returns `{ enqueue(stlPath) → { id, promise }, cancel(jobId), getQueueDepth() }`; the module also exports a default instance as `enqueueSlice` / `cancelSlice` / `getQueueDepth` (the T1 stub was `enqueueSlice`). The factory exists so tests can inject a fake `sliceModel`. The promise resolves with T4's `SliceResult` (including `timedOut`/`cancelled` flags); only an unexpected throw from `sliceModel` rejects it. The caller owns `result.cleanup()`.
+- Queue depth = jobs **waiting**, not counting the one running (AC-sq-3).
+- Cancelling a pending job resolves with a synthetic `SliceResult` (`cancelled: true`, everything else null, no-op `cleanup`). Cancelling the running job aborts T4's `AbortSignal`; the promise resolves with T4's cancelled result and the worker moves on as soon as T4 returns (SIGTERM, SIGKILL after 2 s at most).
+- ASSUMPTION: per-slice timeout defaults to 60 s (the PRD's p95 turnaround target), overridable with `SLICER_TIMEOUT_MS`. The timeout covers one job's run only, not time spent waiting in the queue; queue wait is what T14's load test measures.
+- ASSUMPTION: the worker is a drain loop started on `enqueue` and exits when the queue is empty, rather than a perpetual `while (true)` — same behavior, no idle loop.
