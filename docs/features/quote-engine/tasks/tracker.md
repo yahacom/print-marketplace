@@ -12,7 +12,7 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 | Task | Wave | Status | Blocked by | Estimate | Owner |
 |---|---|---|---|---|---|
 | [[T1-module-scaffold\|T1]] | 1 | done | — | XS | Yakiv Vakoliuk |
-| [[T2-model-reader-repository\|T2]] | 2 | todo | T1 | S | Yakiv Vakoliuk |
+| [[T2-model-reader-repository\|T2]] | 2 | done | T1 | S | Yakiv Vakoliuk |
 | [[T3-firestore-quote-repository\|T3]] | 2 | todo | T1 | S | Yakiv Vakoliuk |
 | [[T4-slicer-service-subprocess\|T4]] | 2 | todo | T1 | S | Yakiv Vakoliuk |
 | [[T5-gcode-parser\|T5]] | 2 | todo | T1 | S | Yakiv Vakoliuk |
@@ -37,9 +37,9 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 
 ## Progress
 
-- Total: 1/16 done
+- Total: 2/16 done
 - Wave 1: 1/1 (T1)
-- Wave 2: 0/6 (T2, T3, T4, T5, T6, T9)
+- Wave 2: 1/6 (T2, T3, T4, T5, T6, T9)
 - Wave 3: 0/2 (T7, T8)
 - Wave 4: 0/2 (T10, T11)
 - Wave 5: 0/5 (T12, T13, T14, T15, T16)
