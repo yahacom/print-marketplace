@@ -24,7 +24,7 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 | [[T11-metrics\|T11]] | 4 | done | T7, T8 | S | Yakiv Vakoliuk |
 | [[T12-ui-websocket-quote-client\|T12]] | 5 | done | T10 | M | Yakiv Vakoliuk |
 | [[T13-integration-tests-per-ac\|T13]] | 5 | done | T10 | M | Yakiv Vakoliuk |
-| [[T14-k6-load-test\|T14]] | 5 | todo | T10, T11 | S | Yakiv Vakoliuk |
+| [[T14-k6-load-test\|T14]] | 5 | blocked | T10, T11 | S | Yakiv Vakoliuk | BLOCKED: needs human decisions (Firestore + PrusaSlicer in the CI k6 job, quote rate-limit override) and k6 is not available to verify a script; see T14 Notes |
 | [[T16-ui-slicing-wait-state-and-cancel\|T16]] | 5 | todo | T10, T12 | S | Yakiv Vakoliuk |
 | [[T15-changelog-kb-note\|T15]] | 5 | todo | T12, T13, T14, T16 | XS | Yakiv Vakoliuk |
 
