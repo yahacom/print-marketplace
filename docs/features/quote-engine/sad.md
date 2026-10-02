@@ -194,24 +194,18 @@ sequenceDiagram
 
 ## 7. Deployment view
 
-<!-- 🎯 Навіщо: ТОПОЛОГІЯ, яку DevOps має знати без читання Helm-чартів — скільки реплік,  -->
-<!--           де живе фоновий обробник, ПРИ ЯКИХ ЧИСЛАХ масштабуємось.                     -->
-<!-- 📋 Що писати: 2-3 речення про топологію + метрики + алерти + конкретні числа-пороги.   -->
-<!-- 📌 Приклад: «500 IC → партиціонування за кварталом» (не «при зростанні подумаємо»).    -->
-<!-- 🎯 Можна N/A для XS/S функцій, що переюзають існуюче розгортання без змін.            -->
-
-<Topology in 2-3 sentences. Where it runs (k8s / VM / serverless), replicas, scaling thresholds.>
+quote-engine deploys inside the same single Fastify process as stl-upload — no new deploy unit. **Scaling threshold: single instance only, as long as the PrusaSlicer-concurrency mechanism (§11 open architectural decision) ends up being the in-memory FIFO-queue option** — a second instance would run its own independent queue and have no visibility into the first instance's in-flight slice, defeating the "≥1 concurrent, rest queue" NFR guarantee across instances. If the open decision instead resolves to an external job queue (e.g. BullMQ+Redis), this threshold is lifted — but that is not decided yet.
 
 **Monitoring:**
-- <Metrics — e.g. Prometheus `<metric_name>`>
-- <Alerts — e.g. "outbox lag > 10 min → page on-call">
-- <Tracing — e.g. OpenTelemetry HTTP spans>
+- Metrics — extend `src/metrics.ts`'s existing Prometheus pattern with: `quote_slice_duration_seconds` (histogram, buckets to 60s+Inf, mirrors the existing `http_request_duration_seconds` bucket shape), `quote_slicer_queue_depth` (gauge), `quote_slicer_exit_code` (counter, labeled by exit code).
+- Alerts — queue depth sustained >5 for >2 min (approaching the "additional requests queue rather than fail" NFR's breaking point); slicer wall-clock p95 approaching the 60s NFR target.
+- Tracing — none beyond existing Fastify request logging (`src/request-logging.ts`); no OpenTelemetry in this repo.
 
 **Scaling thresholds:**
-- <e.g. 500 IC × 5 goals × 26 checkpoints/Q = 65k rows/year — comfortable in one table>
-- <e.g. partitioning by quarter at >500k rows/year>
+- Single instance only, pending resolution of the concurrency-model open decision (§11).
+- No table/row-count scaling concern — quote-engine has no relational storage; Firestore draft-order writes scale with request volume, not with any schema-level ceiling.
 
-<!-- For XS/S that doesn't change deployment: <!-- N/A: feature reuses existing deployment unit -->. -->
+<!-- Not N/A — this feature does change deployment-relevant scaling guidance (single-instance ceiling), even though the deploy unit itself is unchanged. -->
 
 ## 8. Crosscutting concepts
 
