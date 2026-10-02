@@ -7,7 +7,7 @@ priority: Must
 estimate: S
 blocks: [T8]
 blocked_by: [T1]
-status: todo
+status: done
 prd_refs: []
 sad_refs: ["§4 strategic choice 3", "§5", "§8 Credential management row"]
 adr_refs: ["0002"]
@@ -35,17 +35,17 @@ ADR-0002 persists the computed quote to Firestore as a draft order, keyed by the
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-fr-1 (write succeeds):** Given a valid `fileId` and quote payload, when `writeDraftOrder` is called, then a Firestore document at the expected collection/`fileId` path contains the price/time/breakdown fields.
-- [ ] **AC-fr-2 (missing credential fails fast at startup, not at request time):** Given `FIRESTORE_CREDENTIALS_JSON` is unset, when the module initializes, then it throws a clear startup error — not a silent no-op or a per-request failure.
-- [ ] **AC-fr-3 (no credential in source):** `git grep` for `FIRESTORE_CREDENTIALS_JSON` finds only the env-var reference, never a literal key value, anywhere in the diff.
+- [x] **AC-fr-1 (write succeeds):** Given a valid `fileId` and quote payload, when `writeDraftOrder` is called, then a Firestore document at the expected collection/`fileId` path contains the price/time/breakdown fields.
+- [x] **AC-fr-2 (missing credential fails fast at startup, not at request time):** Given `FIRESTORE_CREDENTIALS_JSON` is unset, when the module initializes, then it throws a clear startup error — not a silent no-op or a per-request failure.
+- [x] **AC-fr-3 (no credential in source):** `git grep` for `FIRESTORE_CREDENTIALS_JSON` finds only the env-var reference, never a literal key value, anywhere in the diff.
 
 ## Checklist
 
-- [ ] Step 1 — `npm install firebase-admin`.
-- [ ] Step 2 — Document the required env var in `.env.example` (placeholder value only, e.g. `FIRESTORE_CREDENTIALS_JSON=<REDACTED>`) if the repo has one; otherwise note it in `README.md`'s env-var section.
-- [ ] Step 3 — Implement Firestore client init in `repositories/quote-repository.ts`, reading the credential once at module load.
-- [ ] Step 4 — Implement `writeDraftOrder`.
-- [ ] Step 5 — Unit tests against the Firestore emulator or a mocked `firebase-admin` client (pick whichever the repo's existing test tooling supports more cheaply — no new test infra if avoidable).
+- [x] Step 1 — `npm install firebase-admin`.
+- [x] Step 2 — Document the required env var in `.env.example` (placeholder value only, e.g. `FIRESTORE_CREDENTIALS_JSON=<REDACTED>`) if the repo has one; otherwise note it in `README.md`'s env-var section.
+- [x] Step 3 — Implement Firestore client init in `repositories/quote-repository.ts`, reading the credential once at module load.
+- [x] Step 4 — Implement `writeDraftOrder`.
+- [x] Step 5 — Unit tests against the Firestore emulator or a mocked `firebase-admin` client (pick whichever the repo's existing test tooling supports more cheaply — no new test infra if avoidable).
 
 ## Edge cases
 
@@ -56,6 +56,14 @@ ADR-0002 persists the computed quote to Firestore as a draft order, keyed by the
 
 ## Definition of Done
 
-- [ ] All AC green.
-- [ ] No secret committed — explicit check before PR (CLAUDE.md security rule).
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green.
+- [x] No secret committed — explicit check before PR (CLAUDE.md security rule).
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- ASSUMPTION: `FIRESTORE_CREDENTIALS_JSON` holds the service-account JSON itself (not a file path) — simplest for env-based secret injection, and nothing on disk to leak. Required by the module at startup via `createQuoteRepository()`; T10 must call it when registering the module so a missing key fails the boot.
+- ASSUMPTION: draft orders are stored in the Firestore collection `draftOrders`, document id = file-id, fields `price`, `timeMinutes`, `filamentGrams`, `breakdown`. The task and ADR-0002 don't name the collection; order-confirmation's rework should confirm or rename it.
+- ASSUMPTION: the repo has neither `.env.example` nor a README, so Step 2 is satisfied by this note (placeholder: `FIRESTORE_CREDENTIALS_JSON=<REDACTED>`); T15's KB note should carry the env-var documentation. `deploy/systemd/stl-upload.service` was not touched (outside the story).
+- Tests mock `firebase-admin` (no emulator, no new test infra). The real SDK against live Firestore is unverified.
+- `npm install` needed `--cache $TMPDIR/...` because the sandbox blocks `~/.npm/_cacache`; `npm audit` reports 2 moderate advisories in the new transitive tree, not investigated.
