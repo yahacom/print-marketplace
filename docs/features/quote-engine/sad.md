@@ -232,29 +232,22 @@ ADR files live under `docs/features/quote-engine/adr/NNNN-<title>.md`.
 
 ## 10. Quality requirements
 
-<!-- 🎯 Навіщо: ДЕРЕВО ЯКОСТЕЙ (Quality Tree) — беремо мету з §1 і розкладаємо на          -->
-<!--           конкретні листя: тести, метрики, конфіги, drill-и. ⭐ Без §10 §1 — це       -->
-<!--           маніфест. З §10 кожна декларація мапиться на щось, ЩО МОЖНА ДОВЕСТИ.        -->
-<!-- 📋 Що писати: на кожну якість з §1 — When / Then / How verify. Числа з PRD §6 NFR     -->
-<!--           ДОСЛІВНО (не округлюй p95 ≤250мс до ≤300мс — це F6-помилка критика).        -->
-<!-- 📌 Приклад: «p95 ≤500 мс на UPDATE блоку, перевіримо k6 load test 100 req/s».        -->
-
 Each top-3 goal from §1 expanded into a full scenario:
 
-**QG-1. <quality attribute>**
-- **When:** <trigger condition>
-- **Then:** <expected behavior with numbers from PRD NFR>
-- **How verify:** <test / chaos drill / load test / observability>
+**QG-1. Price accuracy**
+- **When:** a valid model receives a quote from the fixed printer+material configuration.
+- **Then:** the quoted price deviates ≤ ±5% from real print cost (PRD §6 NFR, verbatim).
+- **How verify:** calibration sample of fixed-configuration prints (PRD §6 NFR measurement column) — compare quoted vs. actual material/time cost per sample print, assert deviation ≤5%. **Sample size TBD** — not specified in PRD; a concrete number is a `sdlc:plan-tests` detail, not an architectural decision.
 
-**QG-2. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-2. Quote turnaround**
+- **When:** a valid model requests a quote.
+- **Then:** end-to-end latency (including real PrusaSlicer wall-clock) is p95 ≤ 60s (PRD §6 NFR, verbatim).
+- **How verify:** `quote_slice_duration_seconds` Prometheus histogram (§7); k6 load test matching the existing CI smoke-test pattern (`.github/workflows/ci.yml`), asserting the p95 bucket.
 
-**QG-3. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-3. Graceful handling of bad input**
+- **When:** a quote is requested for a model that is unslicable, exceeds the fixed build volume, no longer exists, or isn't owned by the requester (AC-02, AC-04, AC-05, AC-06).
+- **Then:** the system pushes a `quote.error` WS message with the matching `quote.*` code — never a hang, timeout, or crash.
+- **How verify:** integration tests per AC with fixture files (non-watertight STL, oversized STL, missing file-id, foreign file-id) — assert the correct error code is pushed and no WS connection is left open past the request.
 
 ## 11. Risks and technical debt
 
