@@ -7,7 +7,7 @@ priority: Must
 estimate: M
 blocks: [T10, T11]
 blocked_by: [T2, T3, T5, T6, T7]
-status: todo
+status: done
 prd_refs: [AC-01, AC-02, AC-04, AC-05, AC-06]
 sad_refs: ["§5", "§6 flow 1", "§6 flow 2", "§8 Error handling row"]
 adr_refs: ["0002", "0003"]
@@ -43,23 +43,23 @@ Implement `requestQuote(fileId): { jobId, promise: Promise<QuoteResult> }` where
 
 ## Acceptance criteria (GWT)
 
-- [ ] **AC-qs-1 (AC-01 happy path):** Given a valid, owned file-id for a printable model, when `requestQuote` runs, then it resolves with `{ price, timeMinutes, filamentGrams, breakdown }` and the Firestore draft order (T3) was written.
-- [ ] **AC-qs-2 (AC-02 unslicable):** Given a file-id whose model fails to slice (non-zero exit from T4), or T5 reports `non_manifold`, when `requestQuote` runs, then it resolves with `{ error: "quote.unslicable" }` and no Firestore write occurs — including the case where PrusaSlicer itself slices a non-watertight model "successfully" with exit 0.
-- [ ] **AC-qs-3 (AC-04 exceeds build volume):** Given a file-id whose model is larger than the fixed build volume — which PrusaSlicer reports as exit 0 with no G-code — when `requestQuote` runs, then it resolves with `{ error: "quote.exceeds_build_volume" }` (T5 `exceeds_build_volume`).
-- [ ] **AC-qs-4 (AC-05 missing file):** Given a file-id with no corresponding stored file, when `requestQuote` runs, then it resolves with `{ error: "quote.not_found" }`.
-- [ ] **AC-qs-5 (AC-06 not-owned / malformed, enumeration resistance):** Given a file-id that doesn't match `SAFE_FILE_ID` or belongs to no upload, when `requestQuote` runs, then it resolves with the **exact same** `{ error: "quote.not_found" }` as AC-qs-4 — byte-identical response shape, confirmed by a test asserting equality, not just "both are errors."
-- [ ] **AC-qs-6 (partial-failure safety):** Given slicing and pricing succeed but T3's Firestore write throws, when `requestQuote` runs, then it does **not** resolve with a success payload — it surfaces an error distinct from the four `quote.*` user-facing codes (an operational failure, not a user input problem).
-- [ ] **AC-qs-7 (cancel after enqueue):** Given a job is enqueued in T7 but not yet resolved, when `cancelQuote(jobId)` is called, then `requestQuote`'s promise resolves `{ cancelled: true }`, no Firestore write occurs, and no further side effects fire.
-- [ ] **AC-qs-8 (cancel race with completion):** Given the slice finishes (success or error) in the same tick `cancelQuote` is called, then exactly one outcome wins — either the real result or `cancelled` — never both, and never a write to Firestore followed by a `cancelled` result (no orphaned draft for a quote the user never saw).
+- [x] **AC-qs-1 (AC-01 happy path):** Given a valid, owned file-id for a printable model, when `requestQuote` runs, then it resolves with `{ price, timeMinutes, filamentGrams, breakdown }` and the Firestore draft order (T3) was written.
+- [x] **AC-qs-2 (AC-02 unslicable):** Given a file-id whose model fails to slice (non-zero exit from T4), or T5 reports `non_manifold`, when `requestQuote` runs, then it resolves with `{ error: "quote.unslicable" }` and no Firestore write occurs — including the case where PrusaSlicer itself slices a non-watertight model "successfully" with exit 0.
+- [x] **AC-qs-3 (AC-04 exceeds build volume):** Given a file-id whose model is larger than the fixed build volume — which PrusaSlicer reports as exit 0 with no G-code — when `requestQuote` runs, then it resolves with `{ error: "quote.exceeds_build_volume" }` (T5 `exceeds_build_volume`).
+- [x] **AC-qs-4 (AC-05 missing file):** Given a file-id with no corresponding stored file, when `requestQuote` runs, then it resolves with `{ error: "quote.not_found" }`.
+- [x] **AC-qs-5 (AC-06 not-owned / malformed, enumeration resistance):** Given a file-id that doesn't match `SAFE_FILE_ID` or belongs to no upload, when `requestQuote` runs, then it resolves with the **exact same** `{ error: "quote.not_found" }` as AC-qs-4 — byte-identical response shape, confirmed by a test asserting equality, not just "both are errors."
+- [x] **AC-qs-6 (partial-failure safety):** Given slicing and pricing succeed but T3's Firestore write throws, when `requestQuote` runs, then it does **not** resolve with a success payload — it surfaces an error distinct from the four `quote.*` user-facing codes (an operational failure, not a user input problem).
+- [x] **AC-qs-7 (cancel after enqueue):** Given a job is enqueued in T7 but not yet resolved, when `cancelQuote(jobId)` is called, then `requestQuote`'s promise resolves `{ cancelled: true }`, no Firestore write occurs, and no further side effects fire.
+- [x] **AC-qs-8 (cancel race with completion):** Given the slice finishes (success or error) in the same tick `cancelQuote` is called, then exactly one outcome wins — either the real result or `cancelled` — never both, and never a write to Firestore followed by a `cancelled` result (no orphaned draft for a quote the user never saw).
 
 ## Checklist
 
-- [ ] Step 1 — Implement the orchestration function wiring T2→T7→T5→T6→T3 per sad.md §6's two flows.
-- [ ] Step 1b — Ensure T4's `cleanup()` runs in a `finally` for every outcome (assert in tests that the temp directory is gone after success, error, and cancel).
-- [ ] Step 2 — Map each failure branch to its `quote.*` code; confirm AC-qs-4 and AC-qs-5 produce identical response objects (not just identical codes — the full shape, per PRD §6.1's enumeration-resistance requirement).
-- [ ] Step 3 — Integration-style unit tests (mocking T2/T4/T5/T6/T3 at their boundaries) for AC-qs-1..6.
-- [ ] Step 4 — Implement `cancelQuote(jobId)` and the race-safety guard for AC-qs-8 (e.g. a single-resolution guard so whichever of "T7 resolved" or "cancel requested" happens first wins, and T3's write is skipped once cancellation has won).
-- [ ] Step 5 — Unit tests for AC-qs-7/8.
+- [x] Step 1 — Implement the orchestration function wiring T2→T7→T5→T6→T3 per sad.md §6's two flows.
+- [x] Step 1b — Ensure T4's `cleanup()` runs in a `finally` for every outcome (assert in tests that the temp directory is gone after success, error, and cancel).
+- [x] Step 2 — Map each failure branch to its `quote.*` code; confirm AC-qs-4 and AC-qs-5 produce identical response objects (not just identical codes — the full shape, per PRD §6.1's enumeration-resistance requirement).
+- [x] Step 3 — Integration-style unit tests (mocking T2/T4/T5/T6/T3 at their boundaries) for AC-qs-1..6.
+- [x] Step 4 — Implement `cancelQuote(jobId)` and the race-safety guard for AC-qs-8 (e.g. a single-resolution guard so whichever of "T7 resolved" or "cancel requested" happens first wins, and T3's write is skipped once cancellation has won).
+- [x] Step 5 — Unit tests for AC-qs-7/8.
 
 ## Edge cases
 
@@ -71,5 +71,15 @@ Implement `requestQuote(fileId): { jobId, promise: Promise<QuoteResult> }` where
 
 ## Definition of Done
 
-- [ ] All AC green, especially AC-qs-5's exact-shape equality check.
-- [ ] PR linked back to this file; `tracker.md` updated to `done`.
+- [x] All AC green, especially AC-qs-5's exact-shape equality check.
+- [x] PR linked back to this file (no PR opened — Ralph never opens PRs); `tracker.md` updated to `done`.
+
+## Notes
+
+- API: `createQuoteService(deps)` → `{ requestQuote(fileId) → { jobId, promise }, cancelQuote(jobId) }`. It is a factory (not a module-level `requestQuote` as in the T1 stub) because the real Firestore repository throws at construction without credentials; **T10 must wire it**: `getModelPath`, the T7 queue (`enqueueSlice`/`cancelSlice` or a `createSlicerQueue()`), `parseSliceOutput`, `computePrice`, `createQuoteRepository()`, and `app.log` as `log`.
+- `jobId` is a request-level id minted by `requestQuote` (T7's queue id only exists after the file is resolved); `cancelQuote` maps it to the queue job.
+- ASSUMPTION: the slicer needs a file path but T2's `readModel` returns bytes (up to 50 MB). Added `getModelPath(fileId)` to `repositories/model-reader.ts` (same SAFE_FILE_ID check and notFound semantics, `access()` instead of `readFile`) and T8 uses it; `readModel` is unchanged in behavior (shared `storagePath` helper only).
+- ASSUMPTION: cancelling *before* the file is resolved is not a pure no-op as the task text says: the request is marked cancelled and never enqueued, and its promise resolves `{ cancelled: true }`. Same observable result for T10, but it avoids burning a worker slot on an abandoned request.
+- Race rule (AC-qs-8): cancel wins only if it lands before the Firestore write starts (checked synchronously right before `writeDraftOrder`); once the write has started the quote is reported as success even if cancel arrives, since the draft already exists. Error outcomes that were already decided are not overridden by a late cancel.
+- Operational failures (read EACCES, Firestore write, slicer crash) reject the promise; T10 should map a rejection to a generic non-`quote.*` error. `cleanup()` runs in a `finally` for every result that reached a `SliceResult`.
+- `breakdown` is `{ timeCost, materialCost, margin }` and `price` is `totalPrice`; the same object is written to Firestore and returned.

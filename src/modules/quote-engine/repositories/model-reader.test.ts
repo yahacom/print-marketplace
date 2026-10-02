@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
 import { generateFileId } from "../../stl-upload/file-id.js";
-import { readModel } from "./model-reader.js";
+import { getModelPath, readModel } from "./model-reader.js";
 
 let storageDir: string;
 
@@ -50,4 +50,13 @@ it("propagates non-ENOENT fs errors instead of reporting notFound", async () => 
   await mkdir(join(storageDir, `${fileId}.stl`));
 
   await expect(readModel(fileId)).rejects.toThrow();
+});
+
+it("getModelPath returns the stored path for an existing id, notFound otherwise", async () => {
+  const fileId = generateFileId();
+  await writeFile(join(storageDir, `${fileId}.stl`), "x");
+
+  expect(await getModelPath(fileId)).toBe(join(storageDir, `${fileId}.stl`));
+  expect(await getModelPath(generateFileId())).toEqual({ notFound: true });
+  expect(await getModelPath("../../etc/passwd")).toEqual({ notFound: true });
 });
