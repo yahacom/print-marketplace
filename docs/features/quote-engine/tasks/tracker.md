@@ -9,24 +9,24 @@ updated_at: 2026-10-02
 
 Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `status: todo` and `blocked_by` clear of any non-`done` task.
 
-| Task                                          | Wave | Status  | Blocked by         | Estimate | Owner          |
-| --------------------------------------------- | ---- | ------- | ------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [[T1-module-scaffold\|T1]]                    | 1    | done    | —                  | XS       | Yakiv Vakoliuk |
-| [[T2-model-reader-repository\|T2]]            | 2    | done    | T1                 | S        | Yakiv Vakoliuk |
-| [[T3-firestore-quote-repository\|T3]]         | 2    | done    | T1                 | S        | Yakiv Vakoliuk |
-| [[T4-slicer-service-subprocess\|T4]]          | 2    | done    | T1                 | S        | Yakiv Vakoliuk |
-| [[T5-gcode-parser\|T5]]                       | 2    | done    | T1                 | S        | Yakiv Vakoliuk |
-| [[T6-pricing-service\|T6]]                    | 2    | done    | T1                 | XS       | Yakiv Vakoliuk |
-| [[T9-rate-limit\|T9]]                         | 2    | done    | T1                 | XS       | Yakiv Vakoliuk |
-| [[T7-slicer-queue\|T7]]                       | 3    | done    | T4                 | S        | Yakiv Vakoliuk |
-| [[T8-quote-service-orchestrator\|T8]]         | 3    | done    | T2, T3, T5, T6, T7 | M        | Yakiv Vakoliuk |
-| [[T10-quote-routes-websocket\|T10]]           | 4    | done    | T8, T9             | M        | Yakiv Vakoliuk |
-| [[T11-metrics\|T11]]                          | 4    | done    | T7, T8             | S        | Yakiv Vakoliuk |
-| [[T12-ui-websocket-quote-client\|T12]]        | 5    | done    | T10                | M        | Yakiv Vakoliuk |
-| [[T13-integration-tests-per-ac\|T13]]         | 5    | done    | T10                | M        | Yakiv Vakoliuk |
-| [[T14-k6-load-test\|T14]]                     | 5    | blocked | T10, T11           | S        | Yakiv Vakoliuk | BLOCKED: needs human decisions (Firestore + PrusaSlicer in the CI k6 job, quote rate-limit override) and k6 is not available to verify a script; see T14 Notes |
-| [[T16-ui-slicing-wait-state-and-cancel\|T16]] | 5    | done    | T10, T12           | S        | Yakiv Vakoliuk |
-| [[T15-changelog-kb-note\|T15]]                | 5    | todo    | T12, T13, T14, T16 | XS       | Yakiv Vakoliuk |
+| Task                                          | Wave | Status | Blocked by         | Estimate | Owner          |
+| --------------------------------------------- | ---- | ------ | ------------------ | -------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [[T1-module-scaffold\|T1]]                    | 1    | done   | —                  | XS       | Yakiv Vakoliuk |
+| [[T2-model-reader-repository\|T2]]            | 2    | done   | T1                 | S        | Yakiv Vakoliuk |
+| [[T3-firestore-quote-repository\|T3]]         | 2    | done   | T1                 | S        | Yakiv Vakoliuk |
+| [[T4-slicer-service-subprocess\|T4]]          | 2    | done   | T1                 | S        | Yakiv Vakoliuk |
+| [[T5-gcode-parser\|T5]]                       | 2    | done   | T1                 | S        | Yakiv Vakoliuk |
+| [[T6-pricing-service\|T6]]                    | 2    | done   | T1                 | XS       | Yakiv Vakoliuk |
+| [[T9-rate-limit\|T9]]                         | 2    | done   | T1                 | XS       | Yakiv Vakoliuk |
+| [[T7-slicer-queue\|T7]]                       | 3    | done   | T4                 | S        | Yakiv Vakoliuk |
+| [[T8-quote-service-orchestrator\|T8]]         | 3    | done   | T2, T3, T5, T6, T7 | M        | Yakiv Vakoliuk |
+| [[T10-quote-routes-websocket\|T10]]           | 4    | done   | T8, T9             | M        | Yakiv Vakoliuk |
+| [[T11-metrics\|T11]]                          | 4    | done   | T7, T8             | S        | Yakiv Vakoliuk |
+| [[T12-ui-websocket-quote-client\|T12]]        | 5    | done   | T10                | M        | Yakiv Vakoliuk |
+| [[T13-integration-tests-per-ac\|T13]]         | 5    | done   | T10                | M        | Yakiv Vakoliuk |
+| [[T14-k6-load-test\|T14]]                     | 5    | done   | T10, T11           | S        | Yakiv Vakoliuk | BLOCKED: needs human decisions (Firestore + PrusaSlicer in the CI k6 job, quote rate-limit override) and k6 is not available to verify a script; see T14 Notes |
+| [[T16-ui-slicing-wait-state-and-cancel\|T16]] | 5    | done   | T10, T12           | S        | Yakiv Vakoliuk |
+| [[T15-changelog-kb-note\|T15]]                | 5    | done   | T12, T13, T14, T16 | XS       | Yakiv Vakoliuk |
 
 ## Status legend
 
@@ -37,12 +37,12 @@ Flat status for impl-agent polling. Pick the lowest-ID task in wave order with `
 
 ## Progress
 
-- Total: 14/16 done
+- Total: 16/16 done
 - Wave 1: 1/1 (T1)
 - Wave 2: 6/6 (T2, T3, T4, T5, T6, T9)
 - Wave 3: 2/2 (T7, T8)
 - Wave 4: 2/2 (T10, T11)
-- Wave 5: 3/5 (T12, T13, T14, T15, T16)
+- Wave 5: 5/5 (T12, T13, T14, T15, T16)
 
 ## Next runnable
 

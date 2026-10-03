@@ -1,6 +1,6 @@
 # quote-engine
 
-**Status:** Not started
+**Status:** Implemented (except the k6 load test, T14). Contract: [`kb-quote-contract.md`](kb-quote-contract.md).
 
 ## Scope
 Turns a stored STL into an exact print quote — print time, filament/material usage, and final price with a cost breakdown — by actually slicing the model via a real PrusaSlicer CLI invocation, not a weight-based estimate.

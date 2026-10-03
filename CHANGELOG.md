@@ -1,5 +1,23 @@
 # Changelog
 
+## [Unreleased] - quote-engine
+
+### Added
+
+- `GET /api/v1/quotes` (WebSocket): the client sends `{type: "quote.request", fileId, filename}`; the server slices the stored STL with PrusaSlicer CLI and replies with one `quote.done` (`price`, `timeMinutes`, `filamentGrams`, `breakdown`) or `quote.error` (`quote.not_found`, `quote.unslicable`, `quote.exceeds_build_volume`, `quote.rate_limited`, `quote.internal_error`), then closes. See `docs/features/quote-engine/kb-quote-contract.md`.
+- Pricing formula `time_hours * rate_per_hour + grams * price_per_gram` plus a margin, configured in `src/modules/quote-engine/config/pricing.json`.
+- In-process FIFO queue with a single slicer worker (ADR-0003); closing the WebSocket for any reason hard-kills the in-flight slice and writes no draft.
+- Non-watertight models are rejected (`quote.unslicable`) instead of being quoted from an auto-repaired mesh.
+- Each successful quote is persisted as a Firestore draft order in `draftOrders/<file-id>` (ADR-0002).
+- Quote UI: "Slicing..." wait state with "Back to start", price breakdown, and plain-language errors keyed on `code` (the raw backend `message` is never shown).
+- Slice duration, queue depth and exit-code metrics on `/metrics`; rate limiting of quote requests (30/min per IP).
+
+### Notes
+
+- Requires PrusaSlicer 2.9.6 on the host and `FIRESTORE_CREDENTIALS_JSON` (the service-account JSON) in the environment; the server refuses to boot the module without it.
+- Not done: the k6 load test (T14, needs human decisions) and CI coverage of the slicer-backed integration tests (CI has no PrusaSlicer).
+- The order-confirmation rework required by ADR-0002 (`docs/features/quote-engine/sad.md` §11, High risk) is still open.
+
 ## [Unreleased] - stl-upload-ui
 
 ### Added
