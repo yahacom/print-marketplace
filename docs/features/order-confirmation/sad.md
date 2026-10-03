@@ -150,6 +150,8 @@ C4Container
 
 **Revised 2026-10-03.** All six flows rewritten: quote-engine pushes the quote to the browser directly over its own WebSocket and writes `draftOrders/{fileId}` before order-confirmation is ever called (ADR-0006); there is no quote-engine call or SSE stream from this module (ADR-0005 dropped, ADR-0008). The former `create()`-based exactly-once check (flow 4) is now a Firestore transaction (ADR-0007) that aborts if `decision` is already set.
 
+**Re-examined 2026-10-03 (`sdlc:complete-sequence-diagrams`).** Coverage check against PRD §4: all 5 user stories already have a diagram (US-01→flow 3, US-02→flows 1/5, US-03→flow 2, US-04→flow 6, US-05→flow 4) — no missing UCs, no async/webhook/cron signal in the PRD to draw. Flows 1 and 2 were tightened for internal consistency: both now show a not-found branch (a client could POST confirm/decline without first GETting the screen) and make the transaction's decision-unset re-check explicit and symmetric — the prior text gave confirm an "abort if already set" note that decline lacked, though AC-04 binds both equally. All 6 blocks validated against the Mermaid parser (`mermaid@11`, parse-only — `mmdc` itself needs a headless Chrome binary this sandbox has no network path to install). No new actors; no new ADR potential beyond what 0006-0008 already cover.
+
 **Critical flow 1: Happy path — confirm (US-02, AC-01)**
 
 ```mermaid
@@ -161,13 +163,26 @@ sequenceDiagram
     Note over User: Already has the quote on screen via quote-engine's own WebSocket push
     User->>API: POST /orders/{fileId}/confirm
     API->>FS: get(draftOrders/{fileId})
-    FS-->>API: found — no decision yet
-    API->>SU: Checks model file still exists
-    SU-->>API: exists
-    API->>FS: transaction — set decision=confirmed, decidedAt=now (abort if decision already set)
-    FS-->>API: committed
-    API-->>User: 201 — order confirmed
+    alt document not found
+        FS-->>API: not found
+        API-->>User: 404 — "no quote available yet"
+    else found — no decision yet
+        FS-->>API: found — no decision yet
+        API->>SU: Checks model file still exists
+        SU-->>API: exists
+        API->>FS: transaction — re-check decision unset, then set decision=confirmed, decidedAt=now
+        Note over API,FS: transaction re-verifies decision is still unset — closes the race with a concurrent request (ADR-0007)
+        alt decision still unset
+            FS-->>API: committed
+            API-->>User: 201 — order confirmed
+        else decision already set by a concurrent request
+            FS-->>API: abort — decision field already present
+            API-->>User: 409 — "this quote already has a final decision"
+        end
+    end
 ```
+
+<!-- 2026-10-03 re-examination (sdlc:complete-sequence-diagrams): added the not-found branch (a direct POST without a prior GET is possible) and made the transaction's re-check explicit and symmetric with flow 2 — the original text gave confirm an "(abort if decision already set)" note that decline (flow 2) lacked, even though AC-04 applies to both equally. -->
 
 **Critical flow 2: Happy path — decline (US-03, AC-02)**
 
@@ -179,11 +194,24 @@ sequenceDiagram
     Note over User: Already has the quote on screen via quote-engine's own WebSocket push
     User->>API: POST /orders/{fileId}/decline
     API->>FS: get(draftOrders/{fileId})
-    FS-->>API: found — no decision yet
-    API->>FS: transaction — set decision=declined, decidedAt=now
-    FS-->>API: committed
-    API-->>User: 200 — decision recorded, no order placed
+    alt document not found
+        FS-->>API: not found
+        API-->>User: 404 — "no quote available yet"
+    else found — no decision yet
+        FS-->>API: found — no decision yet
+        API->>FS: transaction — re-check decision unset, then set decision=declined, decidedAt=now
+        Note over API,FS: transaction re-verifies decision is still unset — closes the race with a concurrent request (ADR-0007)
+        alt decision still unset
+            FS-->>API: committed
+            API-->>User: 200 — decision recorded, no order placed
+        else decision already set by a concurrent request
+            FS-->>API: abort — decision field already present
+            API-->>User: 409 — "this quote already has a final decision"
+        end
+    end
 ```
+
+<!-- 2026-10-03 re-examination (sdlc:complete-sequence-diagrams): mirrors flow 1's not-found branch + explicit transaction re-check for symmetry — AC-04's invariant applies to decline exactly as it does to confirm. -->
 
 **Critical flow 3: No quote yet (US-01, AC-03)**
 
