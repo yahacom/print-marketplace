@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: "Superseded by 0006 (dropped — no longer needed)"
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,11 @@ ticket: "<TBD>"
 
 # 0005 — Use Server-Sent Events for slicing-completion updates
 
-- **Status:** Accepted
+- **Status:** Superseded by [[0006-record-decisions-on-quote-engines-draftorders-document.md]] — 2026-10-03
 - **Date:** 2026-09-13
 - **Deciders:** Yakiv Vakoliuk (Architect / feature owner) during the sad.md §4 Socratic walk
+
+> **2026-10-03 note:** quote-engine shipped its own WebSocket push (quote-engine ADR-0001) that delivers `quote.done` directly to the browser before order-confirmation is ever involved. The problem this ADR solved — signaling "quote ready" on order-confirmation's own screen — no longer exists; there is no separate push mechanism to build here.
 
 ## Context
 

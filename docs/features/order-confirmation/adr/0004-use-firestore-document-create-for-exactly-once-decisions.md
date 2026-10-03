@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: "Superseded by 0007"
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,11 @@ ticket: "<TBD>"
 
 # 0004 — Use Firestore document create() for exactly-once decisions
 
-- **Status:** Accepted
+- **Status:** Superseded by [[0007-firestore-transaction-with-decision-precondition-for-exactly-once.md]] — 2026-10-03
 - **Date:** 2026-09-13
 - **Deciders:** Yakiv Vakoliuk (Architect / feature owner) during the sad.md §4 Socratic walk
+
+> **2026-10-03 note:** ADR-0006 moved the write target to `draftOrders/{fileId}`, a document quote-engine already creates. `create()` would fail with `ALREADY_EXISTS` on every attempt, including the first. See ADR-0007 for the transaction-based replacement.
 
 ## Context
 

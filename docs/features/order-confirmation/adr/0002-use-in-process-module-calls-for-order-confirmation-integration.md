@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: "Accepted (narrowed by 0008 — stl-upload call stands, quote-engine call dropped)"
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,11 @@ ticket: "<TBD>"
 
 # 0002 — Use in-process module calls for order-confirmation integration
 
-- **Status:** Accepted
+- **Status:** Accepted — narrowed by [[0008-scope-in-process-calls-to-stl-upload-only.md]] on 2026-10-03
 - **Date:** 2026-09-13
 - **Deciders:** Yakiv Vakoliuk (Architect / feature owner) during the sad.md §4 Socratic walk
+
+> **2026-10-03 note:** quote-engine shipped with no in-process read API (it's a one-shot WebSocket to the browser) — the quote-engine half of this decision never applies. The stl-upload half (below) is unchanged and still Accepted. See ADR-0008.
 
 ## Context
 

@@ -1,8 +1,8 @@
 ---
-status: Accepted
+status: "Superseded by 0006 (collection framing only — Firestore itself still stands)"
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "04-05"
 ticket: "<TBD>"
@@ -10,9 +10,11 @@ ticket: "<TBD>"
 
 # 0001 — Store order records in Firestore
 
-- **Status:** Accepted
+- **Status:** Superseded by [[0006-record-decisions-on-quote-engines-draftorders-document.md]] — 2026-10-03
 - **Date:** 2026-09-13
 - **Deciders:** Yakiv Vakoliuk (Architect / feature owner) during the sad.md §3-§4 Socratic walk
+
+> **2026-10-03 note:** Firestore-as-storage (the choice this ADR argues for) still stands. What's superseded is the "separate order-record document" framing: quote-engine shipped with its own `draftOrders/{fileId}` document, and order-confirmation now records the decision on that same document instead of a new one. See ADR-0006.
 
 ## Context
 
