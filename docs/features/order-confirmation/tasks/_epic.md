@@ -2,7 +2,7 @@
 status: Draft
 owner: "Yakiv Vakoliuk"
 reviewers: ["Tech Lead", "Security Lead"]
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"
@@ -11,43 +11,57 @@ ticket: "<TBD>"
 # Task breakdown — order-confirmation
 
 <!-- Stage 13 → see sdlc/plugin/skills/break-tasks/SKILL.md -->
+<!-- Regenerated 2026-10-03 against the sad.md revision (commit 834ce68) that replaced the
+     pre-quote-engine design (dedicated orders collection, in-process quote-engine call, SSE push)
+     with the shipped quote-engine contract (shared draftOrders/{fileId} doc, no quote-engine call,
+     no SSE). The 2026-09-13 breakdown this supersedes assumed quote-engine and stl-upload did not
+     exist yet; both have since landed (CHANGELOG.md), so T1-T16 below build against real modules,
+     not stubs. -->
 
 ## Upstream artefacts
 
 - [PRD](../PRD.md) — AC-01..AC-05, §6 NFR, §6.1 Security/privacy, §8 Open questions
-- [SAD](../sad.md) — §5 Building block view, §6 Runtime view (flows 1-6), §7 Deployment, §8 Crosscutting, §9 ADR index, §10 Quality requirements
-- ADRs: [0001](../adr/0001-store-order-records-in-firestore.md) Firestore storage (Accepted) · [0002](../adr/0002-use-in-process-module-calls-for-order-confirmation-integration.md) in-process module calls (Accepted) · [0003](../adr/0003-thread-stl-uploads-file-id-as-the-shared-quote-order-id.md) shared UUID v4 id (Accepted) · [0004](../adr/0004-use-firestore-document-create-for-exactly-once-decisions.md) `create()` exactly-once (Accepted) · [0005](../adr/0005-use-server-sent-events-for-slicing-completion-updates.md) SSE for slicing updates (Accepted)
-- [data-model.md](../data-model.md) — single `orders` collection, doc id = shared id, fields `decision`/`decided_at`/`model_file_ref`
+- [SAD](../sad.md) — §3 Context (revised), §4 Solution strategy (revised), §5 Building block view (revised), §6 Runtime view (6 flows, revised), §7 Deployment (revised), §9 ADR index, §10 Quality requirements, §11 Risks
+- ADRs: [0003](../adr/0003-thread-stl-uploads-file-id-as-the-shared-quote-order-id.md) shared UUID v4 id (Accepted, confirmed against real contract) · [0006](../adr/0006-record-decisions-on-quote-engines-draftorders-document.md) decisions on `draftOrders/{fileId}` (Accepted) · [0007](../adr/0007-firestore-transaction-with-decision-precondition-for-exactly-once.md) transaction precondition (Accepted) · [0008](../adr/0008-scope-in-process-calls-to-stl-upload-only.md) in-process scope narrowed to stl-upload (Accepted). ADR-0002 stands, narrowed by 0008. ADR-0001, 0004, 0005 are Superseded — not used below.
+- [`docs/features/quote-engine/kb-quote-contract.md`](../../quote-engine/kb-quote-contract.md) — the real `draftOrders` document shape and WebSocket protocol this breakdown builds against, in place of the stale `data-model.md`.
 
-## Scope note — cross-feature blocker
+## Known gap — data-model.md is stale, not rewritten here
 
-Per ADR-0002, order-confirmation calls quote-engine and stl-upload **in-process** — but neither module exists in `src/` yet (`src/modules/` currently holds only an empty `order-confirmation` skeleton; quote-engine has no PRD/SAD/ADR at all, per project `CLAUDE.md`). Two consequences for the tasks below:
+`docs/features/order-confirmation/data-model.md` (stage 08, 2026-09-13) still describes a dedicated `orders` collection with `create()`-based exactly-once — superseded by ADR-0006/0007's shared `draftOrders/{fileId}` document and transaction. Rewriting it is a stage-08 (`sdlc:generate-data-model`) concern, out of this stage-13 skill's scope. Task files below link directly to SAD §5/§9 and ADR-0006/0007 instead of `data-model.md` so they don't inherit the stale shape. Flagging this explicitly so the gap isn't silently carried forward — recommend a `sdlc:generate-data-model` re-run before/alongside this epic.
 
-- T3 (quote-engine adapter) and T4 (stl-upload adapter) can only build a **typed port + stub/fake** against the shape SAD §5/§6 currently assumes. Real wiring to the actual modules is blocked until those modules ship — tracked as SAD §11 risk ("quote-engine ще не спроєктований") and PRD §8 open question (quote-engine's final output contract, due before quote-engine ships / stage 09 api-contracts).
-- No `openapi.yaml` exists for order-confirmation (api-forge/stage 10 hasn't run for this feature, unlike stl-upload). Route tasks (T6-T9) take their request/response shape from SAD §6 sequence diagrams and PRD AC status codes, not from a formal contract — flagged as a gap to close once api-forge runs for this feature.
+## Known gap — sad.md is still Draft, not Accepted
 
-Out of scope for this breakdown (explicitly deferred by PRD §3/§1 overrides): quote staleness/expiry checks, authorization/ownership checks, payments, order fulfillment, decision reversal. Do not create implementation tasks for these until a future PRD revision lifts the non-goal.
+Per SAD §1's stakeholders table, Tech Lead and Security Lead sign-off are required before stage 06. `sad.md` frontmatter still reads `status: Draft`. This breakdown proceeds on the user's explicit instruction, but **tickets should not move past "Not started" until sad.md is formally Accepted** — otherwise T3-T16 risk building against an architecture that could still change under review.
+
+## Scope note — cross-module touches, and a High-severity risk this breakdown surfaces but cannot close alone
+
+Per ADR-0006/0008, order-confirmation no longer calls quote-engine in-process — it only shares a Firestore document and (per §5) a new `src/shared/firestore-app.ts` singleton. Two consequences:
+
+- **T1** and **T2** touch quote-engine's already-shipped `src/modules/quote-engine/repositories/quote-repository.ts`, not just `order-confirmation/`'s own tree. Both are scoped narrowly (extract one `initializeApp()` call; change one `.set()` call to `.set(..., {merge: true})`) and each needs quote-engine's own existing test suite (quote-engine T13) to stay green, not just order-confirmation's tests.
+- **T2 fixes a High-severity risk SAD §11 explicitly declines to resolve unilaterally**: quote-engine's `writeDraftOrder` currently does a non-merge `.set()`, so a re-quote of the same `fileId` after a confirm/decline silently erases `decision`/`decidedAt` and reopens an already-decided quote — directly undermining AC-04/QG-1. SAD §11 says this "needs a quote-engine-side fix... out of this SAD's scope to decide unilaterally; raise with quote-engine's owner before either feature ships." Since both modules share one owner (Yakiv Vakoliuk) in this repo, T2 is included as a task here rather than left unassigned — **but treat it as a decision requiring the same sign-off as any other quote-engine change, not just an order-confirmation implementation detail.**
+- **T5** adds one new exported function to stl-upload's `repositories/model-repository.ts` (`modelExists`) — stl-upload currently exports no existence check, only `saveModel`. This is the one call ADR-0008 explicitly keeps in-process; no stl-upload PRD/SAD change is implied.
+
+Out of scope for this breakdown (explicitly deferred by PRD §3/§1 overrides): quote staleness/expiry checks, authorization/ownership checks, payments, order fulfillment, decision reversal. Do not create implementation tasks for these until a future PRD revision lifts the non-goal. Also out of scope: resolving SAD §11's "QG-2 display-latency NFR has no step left to measure in this module" open question — that is a PM/architecture decision (PRD retarget or SAD re-confirmation), not an engineering task; flagged for the Tech Lead at stage 06 sign-off.
 
 ## Dependency graph
 
 ```mermaid
 flowchart LR
-    T1[T1 Project scaffold] --> T2[T2 Firestore order repository]
-    T1 --> T3[T3 quote-engine adapter stub]
-    T1 --> T4[T4 stl-upload adapter stub]
-    T2 --> T5[T5 Confirm/decline service]
-    T3 --> T5
-    T4 --> T5
-    T5 --> T6[T6 Quote-summary GET route]
-    T3 --> T7[T7 SSE stream route]
-    T5 --> T8[T8 Confirm POST route]
-    T5 --> T9[T9 Decline POST route]
+    T1[T1 Shared firestore-app] --> T2[T2 quote-engine draftOrder merge fix]
+    T1 --> T4[T4 Order repository]
+    T3[T3 Project scaffold] --> T4
+    T3 --> T5[T5 stl-upload adapter]
+    T4 --> T6[T6 Confirm/decline service]
+    T5 --> T6
+    T6 --> T7[T7 Order-state GET route]
+    T6 --> T8[T8 Confirm POST route]
+    T6 --> T9[T9 Decline POST route]
     T8 --> T10[T10 Rate limiting middleware]
     T9 --> T10
-    T6 --> T11[T11 Structured logging]
+    T7 --> T11[T11 Structured logging]
     T8 --> T11
     T9 --> T11
-    T6 --> T12[T12 Integration tests AC-01..AC-05]
+    T2 --> T12[T12 Integration tests AC-01..AC-05]
     T7 --> T12
     T8 --> T12
     T9 --> T12
@@ -58,7 +72,7 @@ flowchart LR
     T7 --> T14[T14 Deployment + monitoring]
     T8 --> T14
     T9 --> T14
-    T4 --> T15[T15 Security review sign-off]
+    T5 --> T15[T15 Security review sign-off]
     T10 --> T15
     T12 --> T16[T16 CHANGELOG + KB note]
     T13 --> T16
@@ -69,21 +83,21 @@ flowchart LR
 
 | ID | Title | Deps | Estimate | Owner |
 |----|-------|------|----------|-------|
-| T1 | Project scaffold + module skeleton (SAD §5) | — | S | Yakiv Vakoliuk |
-| T2 | Firestore order repository (ADR-0001, ADR-0004) | T1 | S | Yakiv Vakoliuk |
-| T3 | quote-engine adapter + stub (ADR-0002) | T1 | S | Yakiv Vakoliuk |
-| T4 | stl-upload adapter + stub (ADR-0002, AC-05) | T1 | S | Yakiv Vakoliuk |
-| T5 | Confirm/decline domain service (SAD §5 `services/`) | T2, T3, T4 | M | Yakiv Vakoliuk |
-| T6 | Quote-summary GET route (AC-03, US-04) | T5 | S | Yakiv Vakoliuk |
-| T7 | SSE stream route (ADR-0005) | T3 | S | Yakiv Vakoliuk |
-| T8 | Confirm POST route (AC-01, AC-04, AC-05) | T5 | S | Yakiv Vakoliuk |
-| T9 | Decline POST route (AC-02, AC-04) | T5 | S | Yakiv Vakoliuk |
+| T1 | Shared `firestore-app.ts` singleton (SAD §5) | — | S | Yakiv Vakoliuk |
+| T2 | Fix quote-engine `draftOrders` merge-safety (SAD §11 High risk, ADR-0007 consequence) | T1 | S | Yakiv Vakoliuk |
+| T3 | Project scaffold + module skeleton (SAD §5) | — | S | Yakiv Vakoliuk |
+| T4 | Order repository over `draftOrders` (ADR-0006, ADR-0007) | T1, T3 | M | Yakiv Vakoliuk |
+| T5 | stl-upload adapter — real `modelExists` check (ADR-0002/0008, AC-05) | T3 | S | Yakiv Vakoliuk |
+| T6 | Confirm/decline domain service (SAD §5 `services/`) | T4, T5 | M | Yakiv Vakoliuk |
+| T7 | Order-state GET route (AC-03, AC-04, US-04, flows 3/4/6) | T6 | S | Yakiv Vakoliuk |
+| T8 | Confirm POST route (AC-01, AC-04, AC-05, flow 1) | T6 | S | Yakiv Vakoliuk |
+| T9 | Decline POST route (AC-02, AC-04, flow 2) | T6 | S | Yakiv Vakoliuk |
 | T10 | Rate limiting middleware (PRD §6.1) | T8, T9 | S | Yakiv Vakoliuk |
-| T11 | Structured logging (SAD §8) | T6, T8, T9 | XS | Yakiv Vakoliuk |
-| T12 | Integration tests — AC-01..AC-05 | T6, T7, T8, T9, T10 | S | Yakiv Vakoliuk |
-| T13 | k6 load test (PRD §6 NFR) | T8, T9, T10 | S | Yakiv Vakoliuk |
+| T11 | Structured logging (SAD §8) | T7, T8, T9 | XS | Yakiv Vakoliuk |
+| T12 | Integration tests — AC-01..AC-05 + QG-1 concurrency | T2, T7, T8, T9, T10 | S | Yakiv Vakoliuk |
+| T13 | k6 load test (PRD §6 NFR, QG-2) | T8, T9, T10 | S | Yakiv Vakoliuk |
 | T14 | Deployment config + monitoring (SAD §7) | T7, T8, T9 | S | Yakiv Vakoliuk |
-| T15 | Security review sign-off (PRD §6.1) | T4, T10 | S | Security Lead |
+| T15 | Security review sign-off (PRD §6.1) | T5, T10 | S | Security Lead |
 | T16 | CHANGELOG + KB note | T12, T13, T15 | XS | Yakiv Vakoliuk |
 
 ## Estimation legend

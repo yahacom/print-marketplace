@@ -2,7 +2,7 @@
 status: Draft
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"
@@ -27,7 +27,7 @@ Middleware in front of T8/T9 enforcing 10 confirm/decline attempts per minute pe
 
 ## Out of scope
 
-- Rate limiting on the quote-summary GET route (T6) or the SSE stream (T7) — PRD §6.1 scopes this to confirm/decline attempts only
+- Rate limiting on the order-state GET route (T7) — PRD §6.1 scopes this to confirm/decline attempts only
 
 ## DoD
 

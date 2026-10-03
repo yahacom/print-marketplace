@@ -2,7 +2,7 @@
 status: Draft
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"
@@ -10,11 +10,11 @@ ticket: "<TBD>"
 
 # T16 — CHANGELOG + KB note
 
-**Links:** [PRD §8](../PRD.md#8-open-questions) open questions (quote-engine output contract, authz)
+**Links:** [PRD §8](../PRD.md#8-open-questions) open questions (no-authz v1 gap) · [SAD §11](../sad.md) accepted debt (co-owned document, draftOrders misnomer)
 
 ## Summary
 
-CHANGELOG entry and a short KB note documenting: the order-confirmation contract as it stands, the provisional quote-engine/stl-upload adapter interfaces (T3, T4) that a future PR must swap for real integrations once those modules ship, and the two still-open PRD §8 questions (quote-engine's output contract; the no-authz v1 gap).
+CHANGELOG entry and a short KB note documenting: the order-confirmation contract as shipped (GET/POST on `draftOrders/{fileId}`, no quote-engine call, no SSE), T2's merge-safety fix and why it was needed, and the still-open items — PRD §8's no-authz v1 gap, SAD §11's QG-2 retargeting question (flagged by T13), and `data-model.md`'s stale `orders`-collection description (flagged by this epic, not fixed here).
 
 ## DoR
 
@@ -23,11 +23,12 @@ CHANGELOG entry and a short KB note documenting: the order-confirmation contract
 ## Scope
 
 - CHANGELOG entry
-- KB note flagging T3/T4's stub-only status as a handoff note for quote-engine's and stl-upload's own implementation work
+- KB note covering the final `draftOrders/{fileId}` contract and the open items above, as a handoff note for whoever runs `sdlc:generate-data-model` to refresh `data-model.md` and whoever resolves SAD §11's QG-2 question at stage 06
 
 ## Out of scope
 
-- Resolving PRD §8's open questions — tracked there, not here
+- Resolving PRD §8's or SAD §11's open questions — tracked there, not here
+- Rewriting `data-model.md` — flagged, not this task's job
 
 ## DoD
 

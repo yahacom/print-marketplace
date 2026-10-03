@@ -2,7 +2,7 @@
 status: Draft
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-09-13"
+updated_at: "2026-10-03"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"
@@ -18,15 +18,15 @@ Structured JSON logging with a `request_id` field on all order-confirmation rout
 
 ## DoR
 
-- T6, T8, T9 merged
+- T7, T8, T9 merged
 
 ## Scope
 
-- `request_id` attached and logged on every request to T6/T8/T9's routes
+- `request_id` attached and logged on every request to T7/T8/T9's routes
 
 ## Out of scope
 
-- Logging on T7's SSE route (covered incidentally if it shares the same middleware chain, not a separate requirement)
+- Any SSE or streaming log path — none exists (ADR-0005 dropped, SAD §7)
 
 ## DoD
 
@@ -34,7 +34,7 @@ Structured JSON logging with a `request_id` field on all order-confirmation rout
 
 ## Deps
 
-T6, T8, T9
+T7, T8, T9
 
 ## Estimate
 
