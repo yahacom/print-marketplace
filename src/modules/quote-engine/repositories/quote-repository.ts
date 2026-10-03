@@ -6,11 +6,11 @@ const DRAFT_ORDERS_COLLECTION = "draftOrders";
 
 export type DraftOrder = {
   price: number;
-  timeMinutes: number;
+  estimatedPrintTime: number; // seconds, integer
   filamentGrams: number;
   breakdown: Record<string, number>;
   filename: string;
-  slicingTimeMs: number;
+  slicingTime: number; // seconds, integer
 };
 
 export type QuoteRepository = {

@@ -128,16 +128,15 @@ describe("quote-engine end to end", () => {
     expect(breakdown.timeCost + breakdown.materialCost + breakdown.margin).toBeCloseTo(price, 9);
     expect(breakdown.margin).toBeCloseTo((breakdown.timeCost + breakdown.materialCost) * 0.2, 9);
     expect(drafts).toHaveLength(1);
-    expect(drafts[0]).toMatchObject({
-      fileId,
-      order: {
-        price,
-        timeMinutes,
-        filamentGrams,
-        breakdown,
-        filename: "cube.stl",
-        slicingTimeMs: expect.any(Number),
-      },
-    });
+    const draft = drafts[0]!;
+    expect(draft.fileId).toBe(fileId);
+    expect(draft.order.filename).toBe("cube.stl");
+    expect(draft.order.estimatedPrintTime).toBe(Math.round(timeMinutes * 60));
+    expect(draft.order.slicingTime).toEqual(expect.any(Number));
+    expect(draft.order.price).toBeCloseTo(price, 2);
+    expect(draft.order.filamentGrams).toBeCloseTo(filamentGrams, 2);
+    expect(draft.order.breakdown.timeCost).toBeCloseTo(breakdown.timeCost, 2);
+    expect(draft.order.breakdown.materialCost).toBeCloseTo(breakdown.materialCost, 2);
+    expect(draft.order.breakdown.margin).toBeCloseTo(breakdown.margin, 2);
   });
 });

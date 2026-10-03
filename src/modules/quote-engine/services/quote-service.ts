@@ -50,6 +50,9 @@ interface RequestState {
 const NOT_FOUND: QuoteResult = Object.freeze({ error: "quote.not_found" });
 const CANCELLED: QuoteResult = Object.freeze({ cancelled: true });
 
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const toSeconds = (ms: number) => Math.round(ms / 1000);
+
 export type QuoteService = ReturnType<typeof createQuoteService>;
 
 export const createQuoteService = (deps: QuoteServiceDeps) => {
@@ -111,7 +114,18 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
       // written for a quote nobody sees) or after (the write is already
       // committed and the quote is reported).
       if (state.cancelled) return CANCELLED;
-      await deps.repository.writeDraftOrder(fileId, { ...quote, filename, slicingTimeMs: sliceDurationMs });
+      await deps.repository.writeDraftOrder(fileId, {
+        price: round2(totalPrice),
+        filamentGrams: round2(parsed.filamentGrams),
+        breakdown: {
+          timeCost: round2(timeCost),
+          materialCost: round2(materialCost),
+          margin: round2(margin),
+        },
+        filename,
+        estimatedPrintTime: Math.round(parsed.timeMinutes * 60),
+        slicingTime: toSeconds(sliceDurationMs),
+      });
       return quote;
     } finally {
       await sliced.cleanup();

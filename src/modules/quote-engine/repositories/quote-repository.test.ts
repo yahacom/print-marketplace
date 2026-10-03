@@ -15,11 +15,11 @@ const FAKE_KEY_JSON = JSON.stringify({ project_id: "test-project", private_key: 
 
 const order = {
   price: 9.5,
-  timeMinutes: 90,
+  estimatedPrintTime: 5400,
   filamentGrams: 40,
   breakdown: { timeCost: 3.75, materialCost: 0.8, margin: 0.91 },
   filename: "model.stl",
-  slicingTimeMs: 1234,
+  slicingTime: 1,
 };
 
 beforeEach(() => {

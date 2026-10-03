@@ -64,9 +64,12 @@ describe("requestQuote", () => {
     };
     expect(result).toEqual(expected);
     expect(writeDraftOrder).toHaveBeenCalledWith(FILE_ID, {
-      ...expected,
+      price: 5.7,
+      filamentGrams: 50,
+      breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
       filename: FILENAME,
-      slicingTimeMs: expect.any(Number),
+      estimatedPrintTime: 90 * 60,
+      slicingTime: expect.any(Number),
     });
     expect(enqueue).toHaveBeenCalledWith("/storage/model.stl");
     expect(nextSlice.cleanup).toHaveBeenCalledTimes(1);
