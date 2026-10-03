@@ -14,7 +14,7 @@ const SUCCESS = {
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
 };
-const REQUEST = JSON.stringify({ type: "quote.request", fileId: FILE_ID });
+const REQUEST = JSON.stringify({ type: "quote.request", fileId: FILE_ID, filename: "model.stl" });
 
 let app: ReturnType<typeof buildApp>;
 
@@ -83,7 +83,7 @@ describe("quote WebSocket route", () => {
 
     expect(messages).toEqual([{ type: "quote.done", ...SUCCESS }]);
     expect(closeCode).toBe(1000);
-    expect(requestQuote).toHaveBeenCalledWith(FILE_ID);
+    expect(requestQuote).toHaveBeenCalledWith(FILE_ID, "model.stl");
   });
 
   it.each([

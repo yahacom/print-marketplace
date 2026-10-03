@@ -25,7 +25,9 @@ describe("App state machine shell", () => {
   });
 
   it("renders the form with a disabled Uploading... button and proportional fill when uploading", () => {
-    expect(renderedTestIds({ status: "uploading", progress: { loaded: 1, total: 4 } })).toEqual(["upload-form"]);
+    expect(
+      renderedTestIds({ status: "uploading", progress: { loaded: 1, total: 4 }, filename: "a.stl" }),
+    ).toEqual(["upload-form"]);
     const button = container.querySelector("[data-testid=upload-button]") as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(button.textContent).toBe("Uploading...");
@@ -58,6 +60,7 @@ describe("transitions", () => {
     expect(transitions.startUpload(new File(["x"], "a.stl"))).toEqual({
       status: "uploading",
       progress: { loaded: 0, total: 1 },
+      filename: "a.stl",
     });
     expect(transitions.succeed("a.stl")).toEqual({ status: "success", filename: "a.stl" });
     expect(transitions.fail({ kind: "timeout" })).toEqual({ status: "error", failure: { kind: "timeout" } });

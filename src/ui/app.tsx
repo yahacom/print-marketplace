@@ -9,25 +9,38 @@ import { submitUpload, type UploadProgressEvent } from "./upload-client.js";
 
 export type UploadState =
   | { status: "idle" }
-  | { status: "uploading"; progress: UploadProgressEvent }
+  | { status: "uploading"; progress: UploadProgressEvent; filename: string }
   | { status: "success"; filename: string }
   | { status: "error"; failure: UploadFailure }
-  | { status: "slicing" }
-  | { status: "quote_ready"; quote: QuoteDone }
-  | { status: "quote_error"; failure: QuoteFailure };
+  | { status: "slicing"; filename: string }
+  | { status: "quote_ready"; quote: QuoteDone; filename: string }
+  | { status: "quote_error"; failure: QuoteFailure; filename: string };
 
 export const transitions = {
   // `total` is clamped to 1 so the upload button's fill never divides by zero before the first real progress event.
   startUpload: (file: File): UploadState => ({
     status: "uploading",
     progress: { loaded: 0, total: Math.max(file.size, 1) },
+    filename: file.name,
   }),
-  progress: (progress: UploadProgressEvent): UploadState => ({ status: "uploading", progress }),
+  progress: (filename: string, progress: UploadProgressEvent): UploadState => ({
+    status: "uploading",
+    progress,
+    filename,
+  }),
   succeed: (filename: string): UploadState => ({ status: "success", filename }),
   fail: (failure: UploadFailure): UploadState => ({ status: "error", failure }),
-  startSlicing: (): UploadState => ({ status: "slicing" }),
-  quoteReady: (quote: QuoteDone): UploadState => ({ status: "quote_ready", quote }),
-  quoteFail: (failure: QuoteFailure): UploadState => ({ status: "quote_error", failure }),
+  startSlicing: (filename: string): UploadState => ({ status: "slicing", filename }),
+  quoteReady: (quote: QuoteDone, filename: string): UploadState => ({
+    status: "quote_ready",
+    quote,
+    filename,
+  }),
+  quoteFail: (failure: QuoteFailure, filename: string): UploadState => ({
+    status: "quote_error",
+    failure,
+    filename,
+  }),
   reset: (): UploadState => ({ status: "idle" }),
 };
 
@@ -36,7 +49,7 @@ interface AppProps {
   // When given, a successful upload automatically requests a quote for the returned file-id
   // and enters `slicing` (T16). main.tsx passes the real WebSocket client; without it the
   // flow stops at the upload-success screen.
-  startQuote?: (fileId: string) => QuoteRequest;
+  startQuote?: (fileId: string, filename: string) => QuoteRequest;
 }
 
 export function App({ initialState = { status: "idle" }, startQuote }: AppProps) {
@@ -48,20 +61,24 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
   // Leaving the page closes the socket, which makes the server cancel the slice.
   useEffect(() => () => activeQuote.current?.close(), []);
 
-  function beginQuote(fileId: string, start: (fileId: string) => QuoteRequest) {
-    const request = start(fileId);
+  function beginQuote(
+    fileId: string,
+    filename: string,
+    start: (fileId: string, filename: string) => QuoteRequest,
+  ) {
+    const request = start(fileId, filename);
     activeQuote.current = request;
-    setState(transitions.startSlicing());
+    setState(transitions.startSlicing(filename));
     request.promise.then(
       (quote) => {
         if (activeQuote.current !== request) return;
         activeQuote.current = null;
-        setState(transitions.quoteReady(quote));
+        setState(transitions.quoteReady(quote, filename));
       },
       (failure: QuoteFailure) => {
         if (activeQuote.current !== request) return;
         activeQuote.current = null;
-        setState(transitions.quoteFail(failure));
+        setState(transitions.quoteFail(failure, filename));
       },
     );
   }
@@ -77,10 +94,10 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
 
   function handleFileSelected(file: File) {
     setState(transitions.startUpload(file));
-    submitUpload(file, (progress) => setState(transitions.progress(progress))).then(
+    submitUpload(file, (progress) => setState(transitions.progress(file.name, progress))).then(
       (accepted) =>
         startQuote
-          ? beginQuote(accepted.file_id, startQuote)
+          ? beginQuote(accepted.file_id, file.name, startQuote)
           : setState(transitions.succeed(file.name)),
       (failure: UploadFailure) => setState(transitions.fail(failure)),
     );
@@ -92,11 +109,20 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
     </button>
   );
 
+  const filenameBanner = (filename: string) => (
+    <p class="active-filename" data-testid="active-filename">{filename}</p>
+  );
+
   switch (state.status) {
     case "idle":
       return <UploadForm onFileSelected={handleFileSelected} />;
     case "uploading":
-      return <UploadForm onFileSelected={handleFileSelected} progress={state.progress} />;
+      return (
+        <>
+          {filenameBanner(state.filename)}
+          <UploadForm onFileSelected={handleFileSelected} progress={state.progress} />
+        </>
+      );
     case "error":
       return <UploadForm onFileSelected={handleFileSelected} failure={state.failure} />;
     case "success":
@@ -107,18 +133,23 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
         </>
       );
     case "slicing":
-      return <SlicingWait onBackToStart={cancelQuote} />;
+      return (
+        <>
+          {filenameBanner(state.filename)}
+          <SlicingWait onBackToStart={cancelQuote} />
+        </>
+      );
     case "quote_ready":
       return (
         <>
-          <QuoteResult outcome="success" quote={state.quote} />
+          <QuoteResult outcome="success" quote={state.quote} filename={state.filename} />
           {backToStart}
         </>
       );
     case "quote_error":
       return (
         <>
-          <QuoteResult outcome="error" failure={state.failure} />
+          <QuoteResult outcome="error" failure={state.failure} filename={state.filename} />
           {backToStart}
         </>
       );

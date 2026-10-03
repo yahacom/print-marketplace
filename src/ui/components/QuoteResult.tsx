@@ -2,8 +2,8 @@ import { toQuoteUserMessage, type QuoteFailure } from "../errors.js";
 import type { QuoteDone } from "../quote-client.js";
 
 export type QuoteOutcome =
-  | { outcome: "success"; quote: QuoteDone }
-  | { outcome: "error"; failure: QuoteFailure };
+  | { outcome: "success"; quote: QuoteDone; filename: string }
+  | { outcome: "error"; failure: QuoteFailure; filename: string };
 
 // Pricing is configured in USD (config/pricing.json).
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
@@ -21,15 +21,17 @@ function formatDuration(totalMinutes: number): string {
 export function QuoteResult(props: QuoteOutcome) {
   if (props.outcome === "error") {
     return (
-      <section data-testid="quote-result" data-outcome="error" role="alert">
+      <section data-testid="quote-result" data-outcome="error" class="quote-card" role="alert">
+        <p class="active-filename" data-testid="active-filename">{props.filename}</p>
         <p data-testid="quote-result-message">{toQuoteUserMessage(props.failure)}</p>
       </section>
     );
   }
 
-  const { price, timeMinutes, filamentGrams, breakdown } = props.quote;
+  const { price, timeMinutes, filamentGrams } = props.quote;
   return (
-    <section data-testid="quote-result" data-outcome="success">
+    <section data-testid="quote-result" data-outcome="success" class="quote-card">
+      <p class="active-filename" data-testid="active-filename">{props.filename}</p>
       <p>
         Your quote: <strong data-testid="quote-price">{usd.format(price)}</strong>
       </p>
@@ -38,14 +40,6 @@ export function QuoteResult(props: QuoteOutcome) {
         {" · "}
         Filament: <span data-testid="quote-filament">{filamentGrams.toFixed(1)} g</span>
       </p>
-      <dl data-testid="quote-breakdown">
-        <dt>Time cost</dt>
-        <dd data-testid="quote-time-cost">{usd.format(breakdown.timeCost)}</dd>
-        <dt>Material cost</dt>
-        <dd data-testid="quote-material-cost">{usd.format(breakdown.materialCost)}</dd>
-        <dt>Margin</dt>
-        <dd data-testid="quote-margin">{usd.format(breakdown.margin)}</dd>
-      </dl>
     </section>
   );
 }

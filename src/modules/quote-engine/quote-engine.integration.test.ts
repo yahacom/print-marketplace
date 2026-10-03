@@ -56,13 +56,13 @@ const store = async (content: string | Buffer): Promise<string> => {
 
 // Asks for a quote over a real WebSocket. Resolves on the server's close event
 // (AC-it-6) with the raw text of every message received.
-const askForQuote = (fileId: string) =>
+const askForQuote = (fileId: string, filename = "cube.stl") =>
   new Promise<{ raw: string[]; closeCode: number }>((resolve, reject) => {
     const address = app.server.address();
     if (typeof address !== "object" || address === null) throw new Error("not listening");
     const socket = new WebSocket(`ws://127.0.0.1:${address.port}/api/v1/quotes`);
     const raw: string[] = [];
-    socket.onopen = () => socket.send(JSON.stringify({ type: "quote.request", fileId }));
+    socket.onopen = () => socket.send(JSON.stringify({ type: "quote.request", fileId, filename }));
     socket.onmessage = (event) => raw.push(String(event.data));
     socket.onclose = (event) => resolve({ raw, closeCode: event.code });
     socket.onerror = () => reject(new Error("socket error"));
@@ -128,6 +128,16 @@ describe("quote-engine end to end", () => {
     expect(breakdown.timeCost + breakdown.materialCost + breakdown.margin).toBeCloseTo(price, 9);
     expect(breakdown.margin).toBeCloseTo((breakdown.timeCost + breakdown.materialCost) * 0.2, 9);
     expect(drafts).toHaveLength(1);
-    expect(drafts[0]).toMatchObject({ fileId, order: { price, timeMinutes, filamentGrams, breakdown } });
+    expect(drafts[0]).toMatchObject({
+      fileId,
+      order: {
+        price,
+        timeMinutes,
+        filamentGrams,
+        breakdown,
+        filename: "cube.stl",
+        slicingTimeMs: expect.any(Number),
+      },
+    });
   });
 });

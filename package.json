@@ -9,7 +9,7 @@
   "scripts": {
     "build": "tsc",
     "build:ui": "rm -rf dist-ui && esbuild src/ui/main.tsx --bundle --minify --format=esm --target=es2022 --tsconfig=tsconfig.ui.json --outdir=dist-ui && cp src/ui/index.html dist-ui/index.html",
-    "start": "tsx src/main.ts",
+    "start": "FIRESTORE_CREDENTIALS_JSON=\"$(cat ./print-marketplace-78f2fc-firebase-adminsdk-fbsvc-385217bcf1.json)\" tsx src/main.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.ui.json",
     "lint": "eslint .",
     "test": "vitest run"

@@ -53,7 +53,22 @@ it("connects to the quote endpoint on the page's host and sends the file-id once
 
   FakeWebSocket.last.open();
 
-  expect(JSON.parse(FakeWebSocket.last.sent[0]!)).toEqual({ type: "quote.request", fileId: "file-1" });
+  expect(JSON.parse(FakeWebSocket.last.sent[0]!)).toEqual({
+    type: "quote.request",
+    fileId: "file-1",
+    filename: "",
+  });
+});
+
+it("sends the given filename along with the file-id", () => {
+  requestQuote("file-1", "part.stl");
+  FakeWebSocket.last.open();
+
+  expect(JSON.parse(FakeWebSocket.last.sent[0]!)).toEqual({
+    type: "quote.request",
+    fileId: "file-1",
+    filename: "part.stl",
+  });
 });
 
 it("resolves with the quote from quote.done", async () => {

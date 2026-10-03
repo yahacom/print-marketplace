@@ -16,17 +16,23 @@ const QUOTE = {
 
 describe("App quote states", () => {
   it("transitions build the quote states", () => {
-    expect(transitions.quoteReady(QUOTE)).toEqual({ status: "quote_ready", quote: QUOTE });
-    expect(transitions.quoteFail({ kind: "connection_lost" })).toEqual({
+    expect(transitions.quoteReady(QUOTE, "a.stl")).toEqual({
+      status: "quote_ready",
+      quote: QUOTE,
+      filename: "a.stl",
+    });
+    expect(transitions.quoteFail({ kind: "connection_lost" }, "a.stl")).toEqual({
       status: "quote_error",
       failure: { kind: "connection_lost" },
+      filename: "a.stl",
     });
   });
 
   it("quote_ready renders the quote and a Back to start button that returns to the form", async () => {
-    render(<App initialState={transitions.quoteReady(QUOTE)} />, container);
+    render(<App initialState={transitions.quoteReady(QUOTE, "a.stl")} />, container);
 
     expect(container.querySelector("[data-testid=quote-price]")?.textContent).toBe("$5.70");
+    expect(container.querySelector("[data-testid=active-filename]")?.textContent).toBe("a.stl");
     expect(container.querySelector("[data-testid=upload-form]")).toBeNull();
 
     (container.querySelector("button") as HTMLButtonElement).click();
@@ -39,11 +45,14 @@ describe("App quote states", () => {
   it("quote_error renders the mapped message only", () => {
     render(
       <App
-        initialState={transitions.quoteFail({
-          kind: "backend",
-          code: "quote.unslicable",
-          message: "RAW-BACKEND-DETAIL",
-        })}
+        initialState={transitions.quoteFail(
+          {
+            kind: "backend",
+            code: "quote.unslicable",
+            message: "RAW-BACKEND-DETAIL",
+          },
+          "a.stl",
+        )}
       />,
       container,
     );

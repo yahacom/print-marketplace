@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { quoteMetrics } from "../../../metrics.js";
 import type { NotFound } from "../repositories/model-reader.js";
-import type { DraftOrder, QuoteRepository } from "../repositories/quote-repository.js";
+import type { QuoteRepository } from "../repositories/quote-repository.js";
 import { parseSliceOutput } from "./gcode-parser.js";
 import { computePrice } from "./pricing-service.js";
 import type { SlicerQueue } from "./slicer-queue.js";
@@ -9,7 +9,12 @@ import type { SlicerQueue } from "./slicer-queue.js";
 // Orchestrates read → queue/slice → parse → price → persist (T8, SAD §6) and
 // maps every outcome onto the quote.* sentinels (SAD §8).
 
-export type QuoteSuccess = DraftOrder;
+export type QuoteSuccess = {
+  price: number;
+  timeMinutes: number;
+  filamentGrams: number;
+  breakdown: Record<string, number>;
+};
 export type QuoteErrorCode =
   | "quote.not_found"
   | "quote.unslicable"
@@ -50,7 +55,11 @@ export type QuoteService = ReturnType<typeof createQuoteService>;
 export const createQuoteService = (deps: QuoteServiceDeps) => {
   const requests = new Map<string, RequestState>();
 
-  const run = async (fileId: string, state: RequestState): Promise<QuoteResult> => {
+  const run = async (
+    fileId: string,
+    filename: string,
+    state: RequestState,
+  ): Promise<QuoteResult> => {
     const modelPath = await deps.getModelPath(fileId);
     if (typeof modelPath !== "string") return NOT_FOUND;
     // The caller walked away while we were resolving the file: don't queue it.
@@ -60,9 +69,10 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
     const job = deps.queue.enqueue(modelPath);
     state.queueJobId = job.id;
     const sliced = await job.promise;
+    const sliceDurationMs = performance.now() - enqueuedAt;
     // Cancelled jobs were not (fully) sliced; counting them would skew the p95.
     if (!sliced.cancelled) {
-      quoteMetrics.observeSliceDuration((performance.now() - enqueuedAt) / 1000);
+      quoteMetrics.observeSliceDuration(sliceDurationMs / 1000);
     }
 
     try {
@@ -101,18 +111,18 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
       // written for a quote nobody sees) or after (the write is already
       // committed and the quote is reported).
       if (state.cancelled) return CANCELLED;
-      await deps.repository.writeDraftOrder(fileId, quote);
+      await deps.repository.writeDraftOrder(fileId, { ...quote, filename, slicingTimeMs: sliceDurationMs });
       return quote;
     } finally {
       await sliced.cleanup();
     }
   };
 
-  const requestQuote = (fileId: string): QuoteRequest => {
+  const requestQuote = (fileId: string, filename = ""): QuoteRequest => {
     const jobId = randomUUID();
     const state: RequestState = { cancelled: false };
     requests.set(jobId, state);
-    const promise = run(fileId, state).finally(() => requests.delete(jobId));
+    const promise = run(fileId, filename, state).finally(() => requests.delete(jobId));
     return { jobId, promise };
   };
 

@@ -3,7 +3,7 @@ import type { QuoteErrorCode, QuoteService } from "../services/quote-service.js"
 import { createQuoteRateLimiter } from "./rate-limit.js";
 
 // Protocol (ADR-0001), one quote request per connection:
-//   client -> server  first text message: { "type": "quote.request", "fileId": "<uuid>" }
+//   client -> server  first text message: { "type": "quote.request", "fileId": "<uuid>", "filename": "<original name>" }
 //   server -> client  exactly one of
 //     { "type": "quote.done", price, timeMinutes, filamentGrams, breakdown }
 //     { "type": "quote.error", code, message }
@@ -35,13 +35,15 @@ const errorMessage = (code: ErrorCode) => ({
 
 // Anything that is not a well-formed request maps to an unusable id, so it gets
 // the same quote.not_found as a missing file (AC-05/AC-06, no existence leak).
-const extractFileId = (raw: string): string => {
+const extractRequest = (raw: string): { fileId: string; filename: string } => {
   try {
-    const parsed: unknown = JSON.parse(raw);
-    const fileId = (parsed as { fileId?: unknown } | null)?.fileId;
-    return typeof fileId === "string" ? fileId : "";
+    const parsed = JSON.parse(raw) as { fileId?: unknown; filename?: unknown } | null;
+    return {
+      fileId: typeof parsed?.fileId === "string" ? parsed.fileId : "",
+      filename: typeof parsed?.filename === "string" ? parsed.filename : "",
+    };
   } catch {
-    return "";
+    return { fileId: "", filename: "" };
   }
 };
 
@@ -75,7 +77,8 @@ export const quoteRoutes: FastifyPluginAsync<QuoteRoutesOptions> = async (app, o
 
       let quote;
       try {
-        quote = options.getService().requestQuote(extractFileId(data.toString()));
+        const { fileId, filename } = extractRequest(data.toString());
+        quote = options.getService().requestQuote(fileId, filename);
       } catch (error) {
         request.log.error({ err: error }, "quote-engine unavailable");
         finish(errorMessage("quote.internal_error"));

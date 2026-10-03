@@ -4,6 +4,7 @@ import { createQuoteService, type QuoteServiceDeps } from "./quote-service.js";
 import type { SliceResult } from "./slicer-service.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
+const FILENAME = "model.stl";
 
 const sliceResult = (overrides: Partial<SliceResult> = {}): SliceResult => ({
   info: { exitCode: 0, stdout: "", stderr: "" },
@@ -51,7 +52,7 @@ beforeEach(() => {
 
 describe("requestQuote", () => {
   it("AC-qs-1: resolves with price, time, filament and breakdown, and writes the draft order", async () => {
-    const { promise } = createQuoteService(deps).requestQuote(FILE_ID);
+    const { promise } = createQuoteService(deps).requestQuote(FILE_ID, FILENAME);
 
     const result = await promise;
 
@@ -62,7 +63,11 @@ describe("requestQuote", () => {
       breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
     };
     expect(result).toEqual(expected);
-    expect(writeDraftOrder).toHaveBeenCalledWith(FILE_ID, expected);
+    expect(writeDraftOrder).toHaveBeenCalledWith(FILE_ID, {
+      ...expected,
+      filename: FILENAME,
+      slicingTimeMs: expect.any(Number),
+    });
     expect(enqueue).toHaveBeenCalledWith("/storage/model.stl");
     expect(nextSlice.cleanup).toHaveBeenCalledTimes(1);
   });

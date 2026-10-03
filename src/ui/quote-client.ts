@@ -74,7 +74,7 @@ function endpointUrl(): string {
   return `${scheme}//${location.host}${QUOTE_ENDPOINT_PATH}`;
 }
 
-export function requestQuote(fileId: string): QuoteRequest {
+export function requestQuote(fileId: string, filename = ""): QuoteRequest {
   let socket: WebSocket | undefined;
   let closedByClient = false;
 
@@ -89,7 +89,7 @@ export function requestQuote(fileId: string): QuoteRequest {
       action();
     };
 
-    ws.onopen = () => ws.send(JSON.stringify({ type: "quote.request", fileId }));
+    ws.onopen = () => ws.send(JSON.stringify({ type: "quote.request", fileId, filename }));
     ws.onmessage = (event) => {
       const body = typeof event.data === "string" ? parseJson(event.data) : undefined;
       if (isRecord(body) && body.type === "quote.done") {

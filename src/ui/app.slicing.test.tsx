@@ -87,7 +87,7 @@ describe("slicing wait state", () => {
     await uploadFile("abc-123");
 
     expect(startQuote).toHaveBeenCalledTimes(1);
-    expect(startQuote).toHaveBeenCalledWith("abc-123");
+    expect(startQuote).toHaveBeenCalledWith("abc-123", "cube.stl");
     expect($("slicing-wait")).not.toBeNull();
     expect($("upload-result")).toBeNull();
   });
@@ -135,7 +135,7 @@ describe("slicing wait state", () => {
 
     await uploadFile("second");
     expect(startQuote).toHaveBeenCalledTimes(2);
-    expect(startQuote).toHaveBeenLastCalledWith("second");
+    expect(startQuote).toHaveBeenLastCalledWith("second", "cube.stl");
     requests[0]?.resolve(QUOTE); // stale: the first request's late quote.done
     requests[0]?.reject({ kind: "connection_lost" });
     await flush();
@@ -216,6 +216,6 @@ describe("slicing wait state", () => {
   });
 
   it("slicing is a state with a transition", () => {
-    expect(transitions.startSlicing()).toEqual({ status: "slicing" });
+    expect(transitions.startSlicing("a.stl")).toEqual({ status: "slicing", filename: "a.stl" });
   });
 });

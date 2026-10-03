@@ -101,3 +101,15 @@ body {
 [data-testid="upload-result"][data-outcome="success"] {
   margin-bottom: 24px;
 }
+
+.quote-card {
+  padding: 32px 24px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+  margin-bottom: 16px;
+}
+
+.active-filename {
+  font-weight: 600;
+  margin: 0 0 16px;
+}

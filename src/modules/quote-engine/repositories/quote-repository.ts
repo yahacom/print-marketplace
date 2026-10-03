@@ -9,6 +9,8 @@ export type DraftOrder = {
   timeMinutes: number;
   filamentGrams: number;
   breakdown: Record<string, number>;
+  filename: string;
+  slicingTimeMs: number;
 };
 
 export type QuoteRepository = {

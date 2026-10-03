@@ -18,6 +18,8 @@ const order = {
   timeMinutes: 90,
   filamentGrams: 40,
   breakdown: { timeCost: 3.75, materialCost: 0.8, margin: 0.91 },
+  filename: "model.stl",
+  slicingTimeMs: 1234,
 };
 
 beforeEach(() => {
