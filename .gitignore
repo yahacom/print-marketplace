@@ -2,3 +2,5 @@ node_modules/
 dist/
 dist-ui/
 storage/
+*firebase-adminsdk*.json
+.claude/credential-access.log
