@@ -1,5 +1,26 @@
 # Changelog
 
+## [Unreleased] - order-confirmation
+
+### Added
+
+- `GET /api/v1/orders/:fileId`: `404 order.not_found` (no quote yet), `200 {state: "ready", quote}` or `200 {state: "decided", decision, decidedAt, quote}`.
+- `POST /api/v1/orders/:fileId/confirm` (`201 {status: "confirmed"}`) and `POST /api/v1/orders/:fileId/decline` (`200 {status: "declined"}`). Errors: `404 order.not_found`, `409 order.already_decided`, `409 order.file_missing` (confirm only), `429 order.rate_limited`, `500 order.internal_error`; every error body is `{code, message}`. A quote gets at most one decision, enforced by a Firestore transaction (ADR-0007). See `docs/features/order-confirmation/kb-order-contract.md`.
+- The decision is recorded on quote-engine's `draftOrders/<file-id>` document (ADR-0006); confirm checks that the model file still exists in stl-upload's storage (in-process, ADR-0008).
+- Rate limiting of confirm/decline: 10 attempts/min per IP, one shared counter (`ORDER_RATE_LIMIT_PER_MIN` overrides it for load tests).
+- Quote screen: Confirm and Decline buttons, "Order confirmed" / "No order was placed" screens, and plain-language errors keyed on `code` (the raw backend `message` is never shown).
+- Shared `src/shared/firestore-app.ts` Firebase app singleton; stl-upload `modelExists`; k6 load test `k6/order-load.js` with a CI job; Prometheus alert rules `deploy/prometheus/order-confirmation-alerts.yml`.
+
+### Changed
+
+- quote-engine's `writeDraftOrder` now writes with `merge: true`, so a re-quote no longer erases a recorded decision (SAD §11 High risk).
+
+### Notes
+
+- Requires `FIRESTORE_CREDENTIALS_JSON`, like quote-engine.
+- Not done: reopening a past quote after a page reload (US-04/US-05; the SPA has no routing, so the GET route has no caller); any authorization check (deliberate v1 gap, PRD §1); the security review sign-off (`docs/features/order-confirmation/security-review.md`, awaiting the Security Lead); production deployment and monitoring verification (T14).
+- Tests use an in-memory Firestore fake, not the emulator; run the concurrency and merge tests against a real Firestore before release.
+
 ## [Unreleased] - quote-engine
 
 ### Added
