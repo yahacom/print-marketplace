@@ -29,7 +29,7 @@ ticket: "<TBD>"
 | T12 | [Integration tests — AC-01..AC-05 + QG-1 concurrency](t12-integration-tests.md)      | In review  | —   | Yakiv Vakoliuk |
 | T13 | [k6 load test](t13-k6-load-test.md)                                                  | In review  | —   | Yakiv Vakoliuk |
 | T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)                       | In review  | —   | Yakiv Vakoliuk |
-| T15 | [Security review sign-off](t15-security-review-signoff.md)                           | Not started | —   | Security Lead  |
+| T15 | [Security review sign-off](t15-security-review-signoff.md)                           | In review  | —   | Security Lead  |
 | T16 | [CHANGELOG + KB note](t16-changelog-kb-note.md)                                      | Not started | —   | Yakiv Vakoliuk |
 | T17 | [Order API client (src/ui/order-client.ts)](t17-order-api-client.md)                 | Not started | —   | Yakiv Vakoliuk |
 | T18 | [Confirm/decline buttons on the quote screen](t18-confirm-decline-ui.md)             | Not started | —   | Yakiv Vakoliuk |

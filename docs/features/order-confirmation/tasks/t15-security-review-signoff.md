@@ -1,8 +1,8 @@
 ---
-status: Draft
-owner: "Yakiv Vakoliuk"
+status: In review
+owner: "Security Lead"
 reviewers: []
-updated_at: "2026-10-03"
+updated_at: "2026-10-04"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"
@@ -15,6 +15,8 @@ ticket: "<TBD>"
 ## Summary
 
 PRD §6.1 requires a security review before ship: this is the marketplace's first persisted order record and the first confirm/decline surface with no ownership/authorization check (a deliberate v1 gap per PRD §1's feature-owner override, reaffirmed in SAD §11). The Security Lead reviews and signs off that this gap, the co-owned-`draftOrders`-document risk, T2's merge-safety fix, and T10's rate-limiting/abuse-case coverage are acceptable for v1 ship.
+
+**Review artefact (prepared headlessly, no sign-off recorded):** [`../security-review.md`](../security-review.md) — findings, follow-ups F1–F7, and an empty sign-off block for the Security Lead.
 
 ## DoR
 
