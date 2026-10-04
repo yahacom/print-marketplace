@@ -15,7 +15,7 @@ ticket: "<TBD>"
 
 | ID | Title | Status | PR | Owner |
 |----|-------|--------|----|-------|
-| T1 | [Shared firestore-app singleton](t1-shared-firestore-app.md) | Not started | — | Yakiv Vakoliuk |
+| T1 | [Shared firestore-app singleton](t1-shared-firestore-app.md) | In review | — | Yakiv Vakoliuk |
 | T2 | [Fix quote-engine draftOrders merge-safety](t2-quote-engine-draftorder-merge-fix.md) | Not started | — | Yakiv Vakoliuk |
 | T3 | [Project scaffold + module skeleton](t3-project-scaffold.md) | Not started | — | Yakiv Vakoliuk |
 | T4 | [Order repository over draftOrders](t4-order-repository.md) | Not started | — | Yakiv Vakoliuk |
