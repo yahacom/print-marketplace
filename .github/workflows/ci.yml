@@ -38,3 +38,24 @@ jobs:
       - name: Show server log on failure
         if: failure()
         run: tail -n 50 server.log
+
+  k6-order-load:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - uses: grafana/setup-k6-action@v1
+      - name: Start order-confirmation load-test server
+        run: |
+          STORAGE_DIR="$RUNNER_TEMP/order-models" ORDER_RATE_LIMIT_PER_MIN=100000 \
+            npx tsx src/modules/order-confirmation/load-test-server.ts > server.log 2>&1 &
+          curl --retry 30 --retry-delay 1 --retry-connrefused -s -o /dev/null http://localhost:3000/api/v1/orders/00000000-0000-4000-8000-000000000000
+      - name: Run k6 order load test
+        run: k6 run k6/order-load.js
+      - name: Show server log on failure
+        if: failure()
+        run: tail -n 50 server.log

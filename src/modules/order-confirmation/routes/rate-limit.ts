@@ -1,8 +1,16 @@
 import type { onRequestAsyncHookHandler } from "fastify";
 
 // PRD §6.1 spam-create abuse case: 10 confirm/decline attempts per minute.
-const MAX_ATTEMPTS_PER_WINDOW = 10;
+const DEFAULT_MAX_ATTEMPTS_PER_WINDOW = 10;
 const WINDOW_MS = 60_000;
+
+// Production keeps the PRD §6.1 default. The override exists so the k6 load
+// test (T13), which sends all traffic from one IP, can measure throughput
+// without being throttled; invalid values fall back to the default.
+export function resolveMaxAttemptsPerWindow(raw = process.env.ORDER_RATE_LIMIT_PER_MIN): number {
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : DEFAULT_MAX_ATTEMPTS_PER_WINDOW;
+}
 
 const RATE_LIMITED_BODY = {
   code: "order.rate_limited",
@@ -16,6 +24,7 @@ const RATE_LIMITED_BODY = {
 // together when the window elapses, which also bounds memory. Attach it as a
 // per-route onRequest hook; the GET route is deliberately not limited (T10).
 export function createDecisionRateLimit(): onRequestAsyncHookHandler {
+  const maxAttempts = resolveMaxAttemptsPerWindow();
   let windowStart = Date.now();
   let counts = new Map<string, number>();
 
@@ -29,7 +38,7 @@ export function createDecisionRateLimit(): onRequestAsyncHookHandler {
     const count = (counts.get(request.ip) ?? 0) + 1;
     counts.set(request.ip, count);
 
-    if (count > MAX_ATTEMPTS_PER_WINDOW) {
+    if (count > maxAttempts) {
       const retryAfterSeconds = Math.ceil((windowStart + WINDOW_MS - now) / 1000);
       return reply.code(429).header("retry-after", retryAfterSeconds).send(RATE_LIMITED_BODY);
     }
