@@ -34,7 +34,7 @@ it("AC-fr-1: writes the quote fields to the draft-order document keyed by fileId
 
   expect(collection).toHaveBeenCalledWith("draftOrders");
   expect(doc).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111");
-  expect(set).toHaveBeenCalledWith(order);
+  expect(set).toHaveBeenCalledWith(order, { merge: true });
   expect(cert).toHaveBeenCalledWith(JSON.parse(FAKE_KEY_JSON));
 });
 

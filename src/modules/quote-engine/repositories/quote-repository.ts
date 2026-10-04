@@ -27,10 +27,11 @@ export const createQuoteRepository = (
   const draftOrders = getFirestore(app).collection(DRAFT_ORDERS_COLLECTION);
 
   return {
-    // Overwrites any existing draft for the same fileId (re-quote). A failed
-    // write rejects; the caller must not report the quote as done.
+    // Re-quote of the same fileId overwrites only the quote fields; merge keeps
+    // order-confirmation's decision/decidedAt on the shared document (ADR-0006/0007).
+    // A failed write rejects; the caller must not report the quote as done.
     writeDraftOrder: async (fileId, order) => {
-      await draftOrders.doc(fileId).set(order);
+      await draftOrders.doc(fileId).set(order, { merge: true });
     },
   };
 };
