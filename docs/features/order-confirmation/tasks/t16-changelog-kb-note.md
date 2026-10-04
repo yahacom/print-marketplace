@@ -18,12 +18,13 @@ CHANGELOG entry and a short KB note documenting: the order-confirmation contract
 
 ## DoR
 
-- T12, T13, T15 done
+- T12, T13, T15, T18 done
 
 ## Scope
 
 - CHANGELOG entry
 - KB note covering the final `draftOrders/{fileId}` contract and the open items above, as a handoff note for whoever runs `sdlc:generate-data-model` to refresh `data-model.md` and whoever resolves SAD §11's QG-2 question at stage 06
+- KB note also flags the still-open US-04/US-05 "reopen after reload" gap (T18 out-of-scope note) — the SPA has no routing/persisted `fileId`, so reopening a past quote is not yet possible even though T7's GET route supports it server-side
 
 ## Out of scope
 
@@ -38,7 +39,7 @@ CHANGELOG entry and a short KB note documenting: the order-confirmation contract
 
 ## Deps
 
-T12, T13, T15
+T12, T13, T15, T18
 
 ## Estimate
 

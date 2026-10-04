@@ -14,7 +14,7 @@ ticket: "<TBD>"
 
 ## Summary
 
-`POST /api/v1/orders/:fileId/confirm` — calls T6's `decide(fileId, "confirmed")` and maps the result: `"decided"` → 201 order confirmed; `"not_found"` → 404 "no quote available yet" (a direct POST without a prior GET is possible, flow 1's not-found branch); `"already_decided"` → 409 "this quote already has a final decision"; `"file_missing"` → 409 "model needs to be re-uploaded before an order can be placed". No formal `openapi.yaml` exists yet — response shapes follow SAD §6 flow 1's literal messages.
+`POST /api/v1/orders/:fileId/confirm` — calls T6's `decide(fileId, "confirmed")` and maps the result: `"decided"` → 201 order confirmed; `"not_found"` → 404 `{code: "order.not_found", message: "no quote available yet"}`; `"already_decided"` → 409 `{code: "order.already_decided", message: "this quote already has a final decision"}`; `"file_missing"` → 409 `{code: "order.file_missing", message: "model needs to be re-uploaded before an order can be placed"}`. The `code` field is required (not just the message) so T17's UI client can key its own copy on it, same convention as `upload.*`/`quote.*` codes in `src/ui/errors.ts`. No formal `openapi.yaml` exists yet — response shapes follow SAD §6 flow 1's literal messages plus this task's code scheme.
 
 ## DoR
 

@@ -14,7 +14,7 @@ ticket: "<TBD>"
 
 ## Summary
 
-`POST /api/v1/orders/:fileId/decline` — calls T6's `decide(fileId, "declined")` and maps the result: `"decided"` → 200 decision recorded, no order placed; `"not_found"` → 404 "no quote available yet" (flow 2's not-found branch, symmetric with confirm); `"already_decided"` → 409 "this quote already has a final decision". Unlike confirm, decline does not check model-file existence (SAD §6 flow 5 is confirm-only).
+`POST /api/v1/orders/:fileId/decline` — calls T6's `decide(fileId, "declined")` and maps the result: `"decided"` → 200 decision recorded, no order placed; `"not_found"` → 404 `{code: "order.not_found", message: "no quote available yet"}` (flow 2's not-found branch, symmetric with confirm); `"already_decided"` → 409 `{code: "order.already_decided", message: "this quote already has a final decision"}`. Same `code` requirement as T8, for T17's UI client. Unlike confirm, decline does not check model-file existence (SAD §6 flow 5 is confirm-only).
 
 ## DoR
 

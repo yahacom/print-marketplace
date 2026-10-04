@@ -43,6 +43,10 @@ Per ADR-0006/0008, order-confirmation no longer calls quote-engine in-process �
 
 Out of scope for this breakdown (explicitly deferred by PRD §3/§1 overrides): quote staleness/expiry checks, authorization/ownership checks, payments, order fulfillment, decision reversal. Do not create implementation tasks for these until a future PRD revision lifts the non-goal. Also out of scope: resolving SAD §11's "QG-2 display-latency NFR has no step left to measure in this module" open question — that is a PM/architecture decision (PRD retarget or SAD re-confirmation), not an engineering task; flagged for the Tech Lead at stage 06 sign-off.
 
+## Added scope — UI (T17, T18)
+
+`sad.md` §5 defines no UI building block for this feature at all (unlike quote-engine's SAD, which explicitly scoped `src/ui/` work). `QuoteResult.tsx` only displays the quote; nothing in `src/ui/` calls this feature's API. Per feature-owner direction (2026-10-03): the existing `quote_ready` screen *is* the confirm/decline screen — it only needs the buttons wired, not a new screen. T17/T18 add that without a `sdlc:architecture-design` pass, since the change is additive to an existing screen, not a new architectural surface. **Not covered:** US-04/US-05's "leave and come back" reopening — the SPA has no URL routing or persisted `fileId`, so T7's GET route has no caller yet. Flagged in T18 and T16, not built here.
+
 ## Dependency graph
 
 ```mermaid
@@ -74,9 +78,13 @@ flowchart LR
     T9 --> T14
     T5 --> T15[T15 Security review sign-off]
     T10 --> T15
+    T8 --> T17[T17 Order API client]
+    T9 --> T17
+    T17 --> T18[T18 Confirm/decline UI]
     T12 --> T16[T16 CHANGELOG + KB note]
     T13 --> T16
     T15 --> T16
+    T18 --> T16
 ```
 
 ## Tasks
@@ -98,7 +106,9 @@ flowchart LR
 | T13 | k6 load test (PRD §6 NFR, QG-2) | T8, T9, T10 | S | Yakiv Vakoliuk |
 | T14 | Deployment config + monitoring (SAD §7) | T7, T8, T9 | S | Yakiv Vakoliuk |
 | T15 | Security review sign-off (PRD §6.1) | T5, T10 | S | Security Lead |
-| T16 | CHANGELOG + KB note | T12, T13, T15 | XS | Yakiv Vakoliuk |
+| T16 | CHANGELOG + KB note | T12, T13, T15, T18 | XS | Yakiv Vakoliuk |
+| T17 | Order API client (`src/ui/order-client.ts`) | T8, T9 | S | Yakiv Vakoliuk |
+| T18 | Confirm/decline buttons on the quote screen | T17 | M | Yakiv Vakoliuk |
 
 ## Estimation legend
 
