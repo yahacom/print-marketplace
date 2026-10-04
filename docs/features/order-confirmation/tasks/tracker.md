@@ -22,7 +22,7 @@ ticket: "<TBD>"
 | T5  | [stl-upload adapter — real modelExists check](t5-stl-upload-adapter.md)              | In review  | —   | Yakiv Vakoliuk |
 | T6  | [Confirm/decline domain service](t6-confirm-decline-service.md)                      | In review  | —   | Yakiv Vakoliuk |
 | T7  | [Order-state GET route](t7-order-state-route.md)                                     | In review  | —   | Yakiv Vakoliuk |
-| T8  | [Confirm POST route](t8-confirm-route.md)                                            | Not started | —   | Yakiv Vakoliuk |
+| T8  | [Confirm POST route](t8-confirm-route.md)                                            | In review  | —   | Yakiv Vakoliuk |
 | T9  | [Decline POST route](t9-decline-route.md)                                            | Not started | —   | Yakiv Vakoliuk |
 | T10 | [Rate limiting middleware](t10-rate-limiting-middleware.md)                          | Not started | —   | Yakiv Vakoliuk |
 | T11 | [Structured logging](t11-structured-logging.md)                                      | Not started | —   | Yakiv Vakoliuk |

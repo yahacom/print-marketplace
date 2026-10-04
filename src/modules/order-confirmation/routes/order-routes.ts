@@ -5,6 +5,14 @@ import type { OrderService } from "../services/order-service.js";
 // Response bodies follow SAD §6 flows 1-6 (no openapi.yaml exists for this
 // feature yet). The UI shows its own copy keyed on `code`, never `message`.
 const NOT_FOUND_BODY = { code: "order.not_found", message: "no quote available yet" };
+const ALREADY_DECIDED_BODY = {
+  code: "order.already_decided",
+  message: "this quote already has a final decision",
+};
+const FILE_MISSING_BODY = {
+  code: "order.file_missing",
+  message: "model needs to be re-uploaded before an order can be placed",
+};
 const INTERNAL_ERROR_BODY = {
   code: "order.internal_error",
   message: "Something went wrong. Please try again.",
@@ -45,4 +53,26 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
       ? { state: "decided", decision, decidedAt: decidedAt?.toDate().toISOString(), quote }
       : { state: "ready", quote };
   });
+
+  // Flows 1, 4, 5 (AC-01, AC-04, AC-05).
+  app.post<{ Params: { fileId: string } }>(
+    "/api/v1/orders/:fileId/confirm",
+    async (request, reply) => {
+      const { fileId } = request.params;
+      if (!SAFE_FILE_ID.test(fileId)) {
+        return reply.code(404).send(NOT_FOUND_BODY);
+      }
+
+      switch (await options.getService().decide(fileId, "confirmed")) {
+        case "decided":
+          return reply.code(201).send({ status: "confirmed" });
+        case "not_found":
+          return reply.code(404).send(NOT_FOUND_BODY);
+        case "already_decided":
+          return reply.code(409).send(ALREADY_DECIDED_BODY);
+        case "file_missing":
+          return reply.code(409).send(FILE_MISSING_BODY);
+      }
+    },
+  );
 };

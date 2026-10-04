@@ -97,3 +97,58 @@ describe("GET /api/v1/orders/:fileId", () => {
     expect(response.json().code).toBe("order.internal_error");
   });
 });
+
+describe("POST /api/v1/orders/:fileId/confirm", () => {
+  const confirm = (id = FILE_ID) =>
+    buildTestApp().inject({ method: "POST", url: `/api/v1/orders/${id}/confirm` });
+
+  it("AC-01: 201 order confirmed", async () => {
+    decide.mockResolvedValue("decided");
+
+    const response = await confirm();
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toEqual({ status: "confirmed" });
+    expect(decide).toHaveBeenCalledWith(FILE_ID, "confirmed");
+  });
+
+  it("AC-03: 404 no-quote-yet", async () => {
+    decide.mockResolvedValue("not_found");
+
+    const response = await confirm();
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ code: "order.not_found", message: "no quote available yet" });
+  });
+
+  it("AC-04: 409 already decided", async () => {
+    decide.mockResolvedValue("already_decided");
+
+    const response = await confirm();
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      code: "order.already_decided",
+      message: "this quote already has a final decision",
+    });
+  });
+
+  it("AC-05: 409 model file missing", async () => {
+    decide.mockResolvedValue("file_missing");
+
+    const response = await confirm();
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      code: "order.file_missing",
+      message: "model needs to be re-uploaded before an order can be placed",
+    });
+  });
+
+  it("a malformed id is a 404 without reaching the service", async () => {
+    const response = await confirm("..%2Fevil");
+
+    expect(response.statusCode).toBe(404);
+    expect(decide).not.toHaveBeenCalled();
+  });
+});
