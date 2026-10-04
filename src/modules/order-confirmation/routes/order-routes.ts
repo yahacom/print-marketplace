@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { SAFE_FILE_ID } from "../../stl-upload/file-id.js";
 import type { OrderService } from "../services/order-service.js";
+import { createDecisionRateLimit } from "./rate-limit.js";
 
 // Response bodies follow SAD §6 flows 1-6 (no openapi.yaml exists for this
 // feature yet). The UI shows its own copy keyed on `code`, never `message`.
@@ -24,6 +25,8 @@ export interface OrderRoutesOptions {
 }
 
 export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, options) => {
+  const rateLimit = createDecisionRateLimit();
+
   // Operational failures (e.g. Firestore down) must not leak their message.
   app.setErrorHandler((error, request, reply) => {
     request.log.error({ err: error }, "order request failed");
@@ -57,6 +60,7 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
   // Flows 1, 4, 5 (AC-01, AC-04, AC-05).
   app.post<{ Params: { fileId: string } }>(
     "/api/v1/orders/:fileId/confirm",
+    { onRequest: rateLimit },
     async (request, reply) => {
       const { fileId } = request.params;
       if (!SAFE_FILE_ID.test(fileId)) {
@@ -80,6 +84,7 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
   // confirm-only), so the service never answers file_missing here.
   app.post<{ Params: { fileId: string } }>(
     "/api/v1/orders/:fileId/decline",
+    { onRequest: rateLimit },
     async (request, reply) => {
       const { fileId } = request.params;
       if (!SAFE_FILE_ID.test(fileId)) {
