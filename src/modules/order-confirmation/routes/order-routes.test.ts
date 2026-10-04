@@ -152,3 +152,46 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
     expect(decide).not.toHaveBeenCalled();
   });
 });
+
+describe("POST /api/v1/orders/:fileId/decline", () => {
+  const decline = (id = FILE_ID) =>
+    buildTestApp().inject({ method: "POST", url: `/api/v1/orders/${id}/decline` });
+
+  it("AC-02: 200 decision recorded", async () => {
+    decide.mockResolvedValue("decided");
+
+    const response = await decline();
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ status: "declined" });
+    expect(decide).toHaveBeenCalledWith(FILE_ID, "declined");
+  });
+
+  it("AC-03: 404 no-quote-yet", async () => {
+    decide.mockResolvedValue("not_found");
+
+    const response = await decline();
+
+    expect(response.statusCode).toBe(404);
+    expect(response.json()).toEqual({ code: "order.not_found", message: "no quote available yet" });
+  });
+
+  it("AC-04: 409 already decided", async () => {
+    decide.mockResolvedValue("already_decided");
+
+    const response = await decline();
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toEqual({
+      code: "order.already_decided",
+      message: "this quote already has a final decision",
+    });
+  });
+
+  it("a malformed id is a 404 without reaching the service", async () => {
+    const response = await decline("..%2Fevil");
+
+    expect(response.statusCode).toBe(404);
+    expect(decide).not.toHaveBeenCalled();
+  });
+});

@@ -23,7 +23,7 @@ ticket: "<TBD>"
 | T6  | [Confirm/decline domain service](t6-confirm-decline-service.md)                      | In review  | —   | Yakiv Vakoliuk |
 | T7  | [Order-state GET route](t7-order-state-route.md)                                     | In review  | —   | Yakiv Vakoliuk |
 | T8  | [Confirm POST route](t8-confirm-route.md)                                            | In review  | —   | Yakiv Vakoliuk |
-| T9  | [Decline POST route](t9-decline-route.md)                                            | Not started | —   | Yakiv Vakoliuk |
+| T9  | [Decline POST route](t9-decline-route.md)                                            | In review  | —   | Yakiv Vakoliuk |
 | T10 | [Rate limiting middleware](t10-rate-limiting-middleware.md)                          | Not started | —   | Yakiv Vakoliuk |
 | T11 | [Structured logging](t11-structured-logging.md)                                      | Not started | —   | Yakiv Vakoliuk |
 | T12 | [Integration tests — AC-01..AC-05 + QG-1 concurrency](t12-integration-tests.md)      | Not started | —   | Yakiv Vakoliuk |

@@ -75,4 +75,26 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
       }
     },
   );
+
+  // Flows 2, 4 (AC-02, AC-04). Unlike confirm, no model-file check (flow 5 is
+  // confirm-only), so the service never answers file_missing here.
+  app.post<{ Params: { fileId: string } }>(
+    "/api/v1/orders/:fileId/decline",
+    async (request, reply) => {
+      const { fileId } = request.params;
+      if (!SAFE_FILE_ID.test(fileId)) {
+        return reply.code(404).send(NOT_FOUND_BODY);
+      }
+
+      switch (await options.getService().decide(fileId, "declined")) {
+        case "decided":
+          return reply.code(200).send({ status: "declined" });
+        case "not_found":
+          return reply.code(404).send(NOT_FOUND_BODY);
+        case "already_decided":
+        case "file_missing":
+          return reply.code(409).send(ALREADY_DECIDED_BODY);
+      }
+    },
+  );
 };
