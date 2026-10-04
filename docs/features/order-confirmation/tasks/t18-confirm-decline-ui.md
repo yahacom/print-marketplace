@@ -1,8 +1,8 @@
 ---
-status: Draft
+status: In review
 owner: "Yakiv Vakoliuk"
 reviewers: []
-updated_at: "2026-10-03"
+updated_at: "2026-10-04"
 feature_size: M
 stage: "13"
 ticket: "<TBD>"

@@ -2,7 +2,16 @@ import { toQuoteUserMessage, type QuoteFailure } from "../errors.js";
 import type { QuoteDone } from "../quote-client.js";
 
 export type QuoteOutcome =
-  | { outcome: "success"; quote: QuoteDone; filename: string }
+  // The Confirm/Decline buttons (T18) appear only when both handlers are given;
+  // `deciding` disables them while a request is in flight.
+  | {
+      outcome: "success";
+      quote: QuoteDone;
+      filename: string;
+      onConfirm?: () => void;
+      onDecline?: () => void;
+      deciding?: boolean;
+    }
   | { outcome: "error"; failure: QuoteFailure; filename: string };
 
 // Pricing is configured in USD (config/pricing.json).
@@ -29,6 +38,7 @@ export function QuoteResult(props: QuoteOutcome) {
   }
 
   const { price, timeMinutes, filamentGrams } = props.quote;
+  const { onConfirm, onDecline, deciding = false } = props;
   return (
     <section data-testid="quote-result" data-outcome="success" class="quote-card">
       <p class="active-filename" data-testid="active-filename">{props.filename}</p>
@@ -40,6 +50,16 @@ export function QuoteResult(props: QuoteOutcome) {
         {" · "}
         Filament: <span data-testid="quote-filament">{filamentGrams.toFixed(1)} g</span>
       </p>
+      {onConfirm && onDecline && (
+        <p>
+          <button type="button" class="button" data-testid="confirm-button" disabled={deciding} onClick={onConfirm}>
+            Confirm order
+          </button>{" "}
+          <button type="button" class="button" data-testid="decline-button" disabled={deciding} onClick={onDecline}>
+            Decline
+          </button>
+        </p>
+      )}
     </section>
   );
 }

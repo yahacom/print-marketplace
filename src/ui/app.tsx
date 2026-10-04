@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { UploadForm } from "./components/UploadForm.js";
+import { OrderResult } from "./components/OrderResult.js";
 import { QuoteResult } from "./components/QuoteResult.js";
 import { SlicingWait } from "./components/SlicingWait.js";
 import { UploadResult } from "./components/UploadResult.js";
-import type { QuoteFailure, UploadFailure } from "./errors.js";
+import type { OrderFailure, QuoteFailure, UploadFailure } from "./errors.js";
+import { confirmOrder, declineOrder } from "./order-client.js";
 import type { QuoteDone, QuoteRequest } from "./quote-client.js";
 import { submitUpload, type UploadProgressEvent } from "./upload-client.js";
 
@@ -13,8 +15,13 @@ export type UploadState =
   | { status: "success"; filename: string }
   | { status: "error"; failure: UploadFailure }
   | { status: "slicing"; filename: string }
-  | { status: "quote_ready"; quote: QuoteDone; filename: string }
-  | { status: "quote_error"; failure: QuoteFailure; filename: string };
+  // `fileId` (the order id) is absent only for states built without one; the
+  // Confirm/Decline buttons need it. `deciding` is true while a request is in flight.
+  | { status: "quote_ready"; quote: QuoteDone; filename: string; fileId?: string; deciding?: boolean }
+  | { status: "quote_error"; failure: QuoteFailure; filename: string }
+  | { status: "order_confirmed"; filename: string }
+  | { status: "order_declined"; filename: string }
+  | { status: "order_error"; failure: OrderFailure; filename: string };
 
 export const transitions = {
   // `total` is clamped to 1 so the upload button's fill never divides by zero before the first real progress event.
@@ -31,9 +38,21 @@ export const transitions = {
   succeed: (filename: string): UploadState => ({ status: "success", filename }),
   fail: (failure: UploadFailure): UploadState => ({ status: "error", failure }),
   startSlicing: (filename: string): UploadState => ({ status: "slicing", filename }),
-  quoteReady: (quote: QuoteDone, filename: string): UploadState => ({
+  quoteReady: (quote: QuoteDone, filename: string, fileId?: string): UploadState => ({
     status: "quote_ready",
     quote,
+    filename,
+    fileId,
+  }),
+  deciding: (state: Extract<UploadState, { status: "quote_ready" }>): UploadState => ({
+    ...state,
+    deciding: true,
+  }),
+  orderConfirmed: (filename: string): UploadState => ({ status: "order_confirmed", filename }),
+  orderDeclined: (filename: string): UploadState => ({ status: "order_declined", filename }),
+  orderFail: (failure: OrderFailure, filename: string): UploadState => ({
+    status: "order_error",
+    failure,
     filename,
   }),
   quoteFail: (failure: QuoteFailure, filename: string): UploadState => ({
@@ -50,10 +69,20 @@ interface AppProps {
   // and enters `slicing` (T16). main.tsx passes the real WebSocket client; without it the
   // flow stops at the upload-success screen.
   startQuote?: (fileId: string, filename: string) => QuoteRequest;
+  // Injected by tests; defaults to the real order-confirmation client (T17).
+  orderClient?: { confirmOrder: (fileId: string) => Promise<void>; declineOrder: (fileId: string) => Promise<void> };
 }
 
-export function App({ initialState = { status: "idle" }, startQuote }: AppProps) {
+export function App({
+  initialState = { status: "idle" },
+  startQuote,
+  orderClient = { confirmOrder, declineOrder },
+}: AppProps) {
   const [state, setState] = useState<UploadState>(initialState);
+  // Synchronous guard: two clicks in the same tick both see the pre-click state, so
+  // `deciding` in state alone cannot stop a double-submit. The server's transaction
+  // (ADR-0007) remains the real guarantee; this just avoids sending the second request.
+  const decisionInFlight = useRef(false);
   // The live quote request, if any. Results are applied only while it is still this
   // object, so a cancelled or replaced request can never write into a later flow (AC-ws-5).
   const activeQuote = useRef<QuoteRequest | null>(null);
@@ -73,7 +102,7 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
       (quote) => {
         if (activeQuote.current !== request) return;
         activeQuote.current = null;
-        setState(transitions.quoteReady(quote, filename));
+        setState(transitions.quoteReady(quote, filename, fileId));
       },
       (failure: QuoteFailure) => {
         if (activeQuote.current !== request) return;
@@ -103,8 +132,23 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
     );
   }
 
-  const backToStart = (
-    <button type="button" class="button" onClick={() => setState(transitions.reset())}>
+  // Confirm or decline the quote on screen. A repeat is a 409 "already decided" from the
+  // server, so no failure here offers a retry; the user starts over via Back to start.
+  function decide(send: (fileId: string) => Promise<void>, succeed: (filename: string) => UploadState) {
+    if (decisionInFlight.current || state.status !== "quote_ready" || !state.fileId) return;
+    decisionInFlight.current = true;
+    const { fileId, filename } = state;
+    setState(transitions.deciding(state));
+    send(fileId).then(
+      () => setState(succeed(filename)),
+      (failure: OrderFailure) => setState(transitions.orderFail(failure, filename)),
+    ).finally(() => {
+      decisionInFlight.current = false;
+    });
+  }
+
+  const backToStart = (disabled = false) => (
+    <button type="button" class="button" disabled={disabled} onClick={() => setState(transitions.reset())}>
       Back to start
     </button>
   );
@@ -129,7 +173,7 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
       return (
         <>
           <UploadResult outcome="success" filename={state.filename} />
-          {backToStart}
+          {backToStart()}
         </>
       );
     case "slicing":
@@ -142,15 +186,43 @@ export function App({ initialState = { status: "idle" }, startQuote }: AppProps)
     case "quote_ready":
       return (
         <>
-          <QuoteResult outcome="success" quote={state.quote} filename={state.filename} />
-          {backToStart}
+          <QuoteResult
+            outcome="success"
+            quote={state.quote}
+            filename={state.filename}
+            onConfirm={state.fileId ? () => decide(orderClient.confirmOrder, transitions.orderConfirmed) : undefined}
+            onDecline={state.fileId ? () => decide(orderClient.declineOrder, transitions.orderDeclined) : undefined}
+            deciding={state.deciding}
+          />
+          {backToStart(state.deciding)}
         </>
       );
     case "quote_error":
       return (
         <>
           <QuoteResult outcome="error" failure={state.failure} filename={state.filename} />
-          {backToStart}
+          {backToStart()}
+        </>
+      );
+    case "order_confirmed":
+      return (
+        <>
+          <OrderResult outcome="confirmed" filename={state.filename} />
+          {backToStart()}
+        </>
+      );
+    case "order_declined":
+      return (
+        <>
+          <OrderResult outcome="declined" filename={state.filename} />
+          {backToStart()}
+        </>
+      );
+    case "order_error":
+      return (
+        <>
+          <OrderResult outcome="error" failure={state.failure} filename={state.filename} />
+          {backToStart()}
         </>
       );
   }
