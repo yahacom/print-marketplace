@@ -20,7 +20,7 @@ ticket: "<TBD>"
 | T3  | [Project scaffold + module skeleton](t3-project-scaffold.md)                         | In review   | —   | Yakiv Vakoliuk |
 | T4  | [Order repository over draftOrders](t4-order-repository.md)                          | In review  | —   | Yakiv Vakoliuk |
 | T5  | [stl-upload adapter — real modelExists check](t5-stl-upload-adapter.md)              | In review  | —   | Yakiv Vakoliuk |
-| T6  | [Confirm/decline domain service](t6-confirm-decline-service.md)                      | Not started | —   | Yakiv Vakoliuk |
+| T6  | [Confirm/decline domain service](t6-confirm-decline-service.md)                      | In review  | —   | Yakiv Vakoliuk |
 | T7  | [Order-state GET route](t7-order-state-route.md)                                     | Not started | —   | Yakiv Vakoliuk |
 | T8  | [Confirm POST route](t8-confirm-route.md)                                            | Not started | —   | Yakiv Vakoliuk |
 | T9  | [Decline POST route](t9-decline-route.md)                                            | Not started | —   | Yakiv Vakoliuk |
