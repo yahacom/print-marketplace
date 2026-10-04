@@ -1,0 +1,53 @@
+# Alert rules for order-confirmation (SAD §7 Monitoring). Metric source: GET
+# /metrics (http_request_duration_seconds histogram, src/metrics.ts), which
+# already labels every request by route pattern, so the three order routes need
+# no extra instrumentation. The scrape config and Alertmanager routing are part
+# of the monitoring backend, not this repo.
+#
+# The histogram's finite buckets near the targets are 0.1, 0.25, 0.5 s, so
+# histogram_quantile() interpolates linearly inside the 0.25-0.5 s bucket: the
+# 300 ms and 200 ms comparisons below are estimates, not exact. Add 0.2 / 0.3
+# buckets to src/metrics.ts if exact thresholds are wanted.
+groups:
+  - name: order-confirmation
+    rules:
+      # PRD §6: p95 confirm/decline write latency <= 300 ms.
+      - alert: OrderDecisionWriteLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{
+              route=~"/api/v1/orders/:fileId/(confirm|decline)", status_code=~"2.."}[5m])))
+            > 0.3
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "p95 confirm/decline latency is above the 300 ms target"
+
+      # PRD §6: p95 order-state read latency <= 200 ms.
+      - alert: OrderStateReadLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(http_request_duration_seconds_bucket{
+              route="/api/v1/orders/:fileId", method="GET", status_code=~"2.."}[5m])))
+            > 0.2
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "p95 order-state GET latency is above the 200 ms target"
+
+      # PRD §6.1 spam-create signal / double-submit bug: sustained duplicate
+      # confirm/decline attempts (AC-04 409s). >0.1/s is ~6 per minute for 5 min.
+      # A single IP is capped at 10 attempts/min by the rate limiter, so this
+      # fires on a sustained pattern, not on one user double-clicking.
+      - alert: OrderDecision409Spike
+        expr: |
+          sum(rate(http_request_duration_seconds_count{
+            route=~"/api/v1/orders/:fileId/(confirm|decline)", status_code="409"}[5m]))
+            > 0.1
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "Sustained 409s on confirm/decline: duplicate-decision attempts spiking"

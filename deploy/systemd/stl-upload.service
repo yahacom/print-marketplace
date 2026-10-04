@@ -1,4 +1,10 @@
 # systemd unit for stl-upload (SAD §7: single long-lived process on one VM).
+# The same process also serves quote-engine and order-confirmation (their
+# in-process stl-upload calls require co-location, ADR-0002/0008), so this one
+# unit is the order-confirmation deployment too.
+# quote-engine and order-confirmation need FIRESTORE_CREDENTIALS_JSON (the
+# service-account JSON itself, not a path). Supply it from a root-only file via
+# EnvironmentFile= or a drop-in; never put the value in this unit.
 # Install: /etc/systemd/system/stl-upload.service, then
 #   systemctl daemon-reload && systemctl enable --now stl-upload
 # Assumes the built app (`npm ci --omit=dev && npm run build`) lives in
