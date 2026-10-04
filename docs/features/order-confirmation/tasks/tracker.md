@@ -26,7 +26,7 @@ ticket: "<TBD>"
 | T9  | [Decline POST route](t9-decline-route.md)                                            | In review  | —   | Yakiv Vakoliuk |
 | T10 | [Rate limiting middleware](t10-rate-limiting-middleware.md)                          | In review  | —   | Yakiv Vakoliuk |
 | T11 | [Structured logging](t11-structured-logging.md)                                      | In review  | —   | Yakiv Vakoliuk |
-| T12 | [Integration tests — AC-01..AC-05 + QG-1 concurrency](t12-integration-tests.md)      | Not started | —   | Yakiv Vakoliuk |
+| T12 | [Integration tests — AC-01..AC-05 + QG-1 concurrency](t12-integration-tests.md)      | In review  | —   | Yakiv Vakoliuk |
 | T13 | [k6 load test](t13-k6-load-test.md)                                                  | Not started | —   | Yakiv Vakoliuk |
 | T14 | [Deployment config + monitoring](t14-deployment-monitoring.md)                       | Not started | —   | Yakiv Vakoliuk |
 | T15 | [Security review sign-off](t15-security-review-signoff.md)                           | Not started | —   | Security Lead  |
