@@ -70,14 +70,14 @@ beforeEach(() => {
 });
 afterEach(() => render(null, container));
 
-describe("confirm / decline on the quote screen", () => {
-  it("shows Confirm and Decline next to the quote", () => {
+describe("confirm on the quote screen", () => {
+  it("shows Confirm next to Back to start", () => {
     renderQuote();
 
-    expect(buttonLabels()).toEqual(["Confirm order", "Decline", "Back to start"]);
+    expect(buttonLabels()).toEqual(["Back to start", "Confirm order"]);
   });
 
-  it("AC-01: Confirm succeeds -> confirmed message, decision buttons gone", async () => {
+  it("AC-01: Confirm succeeds -> confirmed message, decision button gone", async () => {
     renderQuote();
 
     await click("confirm-button");
@@ -85,19 +85,7 @@ describe("confirm / decline on the quote screen", () => {
     expect(confirmOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID);
     expect($("order-result-message")?.textContent).toBe("Order confirmed");
     expect($("confirm-button")).toBeNull();
-    expect($("decline-button")).toBeNull();
     expect(buttonLabels()).toEqual(["Back to start"]);
-  });
-
-  it("AC-02: Decline succeeds -> declined message, decision buttons gone", async () => {
-    renderQuote();
-
-    await click("decline-button");
-
-    expect(declineOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID);
-    expect($("order-result-message")?.textContent).toBe("No order was placed");
-    expect($("confirm-button")).toBeNull();
-    expect($("decline-button")).toBeNull();
   });
 
   it("AC-04: Confirm on an already-decided quote shows the final-decision text and no retry", async () => {
@@ -109,7 +97,6 @@ describe("confirm / decline on the quote screen", () => {
     expect($("order-result-message")?.textContent).toContain("already has a final decision");
     expect(container.textContent).not.toContain(RAW_MESSAGE);
     expect($("confirm-button")).toBeNull();
-    expect($("decline-button")).toBeNull();
     expect(buttonLabels()).toEqual(["Back to start"]);
     expect(confirmOrder).toHaveBeenCalledTimes(1);
   });
@@ -125,10 +112,10 @@ describe("confirm / decline on the quote screen", () => {
   });
 
   it("a network failure shows the unreachable text, not a raw error", async () => {
-    declineOrder.mockRejectedValue({ kind: "network" } satisfies OrderFailure);
+    confirmOrder.mockRejectedValue({ kind: "network" } satisfies OrderFailure);
     renderQuote();
 
-    await click("decline-button");
+    await click("confirm-button");
 
     expect($("order-result-message")?.textContent).toContain("couldn't reach the server");
   });
@@ -143,7 +130,7 @@ describe("confirm / decline on the quote screen", () => {
     expect(container.textContent).not.toContain(RAW_MESSAGE);
   });
 
-  it("disables both buttons and Back to start while the request is in flight", async () => {
+  it("disables Confirm and Back to start while the request is in flight", async () => {
     let settle!: () => void;
     confirmOrder.mockReturnValue(new Promise<void>((resolve) => (settle = resolve)));
     renderQuote();
@@ -151,8 +138,7 @@ describe("confirm / decline on the quote screen", () => {
     await click("confirm-button");
 
     expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(true);
-    expect(($("decline-button") as HTMLButtonElement).disabled).toBe(true);
-    expect((container.querySelectorAll("button")[2] as HTMLButtonElement).disabled).toBe(true);
+    expect((container.querySelectorAll("button")[0] as HTMLButtonElement).disabled).toBe(true);
 
     settle();
     await flush();
@@ -186,11 +172,10 @@ describe("confirm / decline on the quote screen", () => {
     expect($("order-result")).toBeNull();
   });
 
-  it("shows no decision buttons for a quote state without a file id", () => {
+  it("shows no Confirm button for a quote state without a file id", () => {
     render(<App initialState={transitions.quoteReady(QUOTE, "a.stl")} />, container);
 
     expect($("confirm-button")).toBeNull();
-    expect($("decline-button")).toBeNull();
   });
 });
 

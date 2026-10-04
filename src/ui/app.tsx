@@ -17,7 +17,13 @@ export type UploadState =
   | { status: "slicing"; filename: string }
   // `fileId` (the order id) is absent only for states built without one; the
   // Confirm/Decline buttons need it. `deciding` is true while a request is in flight.
-  | { status: "quote_ready"; quote: QuoteDone; filename: string; fileId?: string; deciding?: boolean }
+  | {
+      status: "quote_ready";
+      quote: QuoteDone;
+      filename: string;
+      fileId?: string;
+      deciding?: boolean;
+    }
   | { status: "quote_error"; failure: QuoteFailure; filename: string }
   | { status: "order_confirmed"; filename: string }
   | { status: "order_declined"; filename: string }
@@ -37,19 +43,34 @@ export const transitions = {
   }),
   succeed: (filename: string): UploadState => ({ status: "success", filename }),
   fail: (failure: UploadFailure): UploadState => ({ status: "error", failure }),
-  startSlicing: (filename: string): UploadState => ({ status: "slicing", filename }),
-  quoteReady: (quote: QuoteDone, filename: string, fileId?: string): UploadState => ({
+  startSlicing: (filename: string): UploadState => ({
+    status: "slicing",
+    filename,
+  }),
+  quoteReady: (
+    quote: QuoteDone,
+    filename: string,
+    fileId?: string,
+  ): UploadState => ({
     status: "quote_ready",
     quote,
     filename,
     fileId,
   }),
-  deciding: (state: Extract<UploadState, { status: "quote_ready" }>): UploadState => ({
+  deciding: (
+    state: Extract<UploadState, { status: "quote_ready" }>,
+  ): UploadState => ({
     ...state,
     deciding: true,
   }),
-  orderConfirmed: (filename: string): UploadState => ({ status: "order_confirmed", filename }),
-  orderDeclined: (filename: string): UploadState => ({ status: "order_declined", filename }),
+  orderConfirmed: (filename: string): UploadState => ({
+    status: "order_confirmed",
+    filename,
+  }),
+  orderDeclined: (filename: string): UploadState => ({
+    status: "order_declined",
+    filename,
+  }),
   orderFail: (failure: OrderFailure, filename: string): UploadState => ({
     status: "order_error",
     failure,
@@ -70,7 +91,10 @@ interface AppProps {
   // flow stops at the upload-success screen.
   startQuote?: (fileId: string, filename: string) => QuoteRequest;
   // Injected by tests; defaults to the real order-confirmation client (T17).
-  orderClient?: { confirmOrder: (fileId: string) => Promise<void>; declineOrder: (fileId: string) => Promise<void> };
+  orderClient?: {
+    confirmOrder: (fileId: string) => Promise<void>;
+    declineOrder: (fileId: string) => Promise<void>;
+  };
 }
 
 export function App({
@@ -123,7 +147,9 @@ export function App({
 
   function handleFileSelected(file: File) {
     setState(transitions.startUpload(file));
-    submitUpload(file, (progress) => setState(transitions.progress(file.name, progress))).then(
+    submitUpload(file, (progress) =>
+      setState(transitions.progress(file.name, progress)),
+    ).then(
       (accepted) =>
         startQuote
           ? beginQuote(accepted.file_id, file.name, startQuote)
@@ -134,27 +160,45 @@ export function App({
 
   // Confirm or decline the quote on screen. A repeat is a 409 "already decided" from the
   // server, so no failure here offers a retry; the user starts over via Back to start.
-  function decide(send: (fileId: string) => Promise<void>, succeed: (filename: string) => UploadState) {
-    if (decisionInFlight.current || state.status !== "quote_ready" || !state.fileId) return;
+  function decide(
+    send: (fileId: string) => Promise<void>,
+    succeed: (filename: string) => UploadState,
+  ) {
+    if (
+      decisionInFlight.current ||
+      state.status !== "quote_ready" ||
+      !state.fileId
+    )
+      return;
     decisionInFlight.current = true;
     const { fileId, filename } = state;
     setState(transitions.deciding(state));
-    send(fileId).then(
-      () => setState(succeed(filename)),
-      (failure: OrderFailure) => setState(transitions.orderFail(failure, filename)),
-    ).finally(() => {
-      decisionInFlight.current = false;
-    });
+    send(fileId)
+      .then(
+        () => setState(succeed(filename)),
+        (failure: OrderFailure) =>
+          setState(transitions.orderFail(failure, filename)),
+      )
+      .finally(() => {
+        decisionInFlight.current = false;
+      });
   }
 
   const backToStart = (disabled = false) => (
-    <button type="button" class="button" disabled={disabled} onClick={() => setState(transitions.reset())}>
+    <button
+      type="button"
+      class="button"
+      disabled={disabled}
+      onClick={() => setState(transitions.reset())}
+    >
       Back to start
     </button>
   );
 
   const filenameBanner = (filename: string) => (
-    <p class="active-filename" data-testid="active-filename">{filename}</p>
+    <p class="active-filename" data-testid="active-filename">
+      {filename}
+    </p>
   );
 
   switch (state.status) {
@@ -164,11 +208,19 @@ export function App({
       return (
         <>
           {filenameBanner(state.filename)}
-          <UploadForm onFileSelected={handleFileSelected} progress={state.progress} />
+          <UploadForm
+            onFileSelected={handleFileSelected}
+            progress={state.progress}
+          />
         </>
       );
     case "error":
-      return <UploadForm onFileSelected={handleFileSelected} failure={state.failure} />;
+      return (
+        <UploadForm
+          onFileSelected={handleFileSelected}
+          failure={state.failure}
+        />
+      );
     case "success":
       return (
         <>
@@ -190,17 +242,31 @@ export function App({
             outcome="success"
             quote={state.quote}
             filename={state.filename}
-            onConfirm={state.fileId ? () => decide(orderClient.confirmOrder, transitions.orderConfirmed) : undefined}
-            onDecline={state.fileId ? () => decide(orderClient.declineOrder, transitions.orderDeclined) : undefined}
-            deciding={state.deciding}
           />
-          {backToStart(state.deciding)}
+          {backToStart(state.deciding)}{" "}
+          {state.fileId && (
+            <button
+              type="button"
+              class="button button--confirm"
+              data-testid="confirm-button"
+              disabled={state.deciding}
+              onClick={() =>
+                decide(orderClient.confirmOrder, transitions.orderConfirmed)
+              }
+            >
+              Confirm order
+            </button>
+          )}
         </>
       );
     case "quote_error":
       return (
         <>
-          <QuoteResult outcome="error" failure={state.failure} filename={state.filename} />
+          <QuoteResult
+            outcome="error"
+            failure={state.failure}
+            filename={state.filename}
+          />
           {backToStart()}
         </>
       );
@@ -221,7 +287,11 @@ export function App({
     case "order_error":
       return (
         <>
-          <OrderResult outcome="error" failure={state.failure} filename={state.filename} />
+          <OrderResult
+            outcome="error"
+            failure={state.failure}
+            filename={state.filename}
+          />
           {backToStart()}
         </>
       );

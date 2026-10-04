@@ -78,6 +78,10 @@ body {
   cursor: default;
 }
 
+.button--confirm {
+  background: linear-gradient(90deg, #15803d, #16a34a);
+}
+
 .button__label {
   position: relative;
 }
