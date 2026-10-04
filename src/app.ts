@@ -3,6 +3,7 @@ import Fastify from "fastify";
 import { fileURLToPath } from "node:url";
 import type { Writable } from "node:stream";
 import { registerMetrics } from "./metrics.js";
+import { orderConfirmationModule } from "./modules/order-confirmation/module.js";
 import { quoteEngineModule, type QuoteEngineOptions } from "./modules/quote-engine/module.js";
 import { stlUploadModule } from "./modules/stl-upload/module.js";
 import {
@@ -29,6 +30,7 @@ export function buildApp(
   app.get("/health", async () => ({ status: "ok" }));
   app.register(stlUploadModule);
   app.register(quoteEngineModule, { quoteService: options.quoteService });
+  app.register(orderConfirmationModule);
   app.register(fastifyStatic, { root: options.uiRoot ?? defaultUiRoot });
 
   return app;
