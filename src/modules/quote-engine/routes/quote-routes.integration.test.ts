@@ -182,7 +182,7 @@ describe("quote WebSocket route", () => {
       }),
       price: () => ({ timeCost: 3.75, materialCost: 1, margin: 0.95, totalPrice: 5.7 }),
       repository: { writeDraftOrder },
-      log: { error: () => {} },
+      log: { error: () => {}, info: () => {} },
     });
     return { service, release, finished, queueCancel, writeDraftOrder, cleanup };
   };

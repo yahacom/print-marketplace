@@ -36,7 +36,7 @@ beforeEach(async () => {
         drafts.push({ fileId, order });
       },
     },
-    log: { error: () => {} },
+    log: { error: () => {}, info: () => {} },
   });
   app = buildApp({ quoteService: service });
   await app.listen({ port: 0, host: "127.0.0.1" });

@@ -53,7 +53,7 @@ describe("quote-engine metrics", () => {
         }),
         price: () => ({ timeCost: 1, materialCost: 1, margin: 1, totalPrice: 3 }),
         repository: { writeDraftOrder: async () => {} },
-        log: { error: () => {} },
+        log: { error: () => {}, info: () => {} },
       } as QuoteServiceDeps);
       await service.requestQuote("id").promise;
     };
