@@ -21,7 +21,7 @@ body {
 }
 
 #app {
-  width: min(720px, 100%);
+  width: min(960px, 100%);
   padding: 24px;
   text-align: center;
 }
@@ -126,14 +126,34 @@ body {
   margin-bottom: 16px;
 }
 
-.quote-layout .quote-card {
+.model-preview {
   flex: 1;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+.model-preview canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.quote-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quote-column .quote-card {
   margin-bottom: 0;
 }
 
-.quote-layout [data-testid="customer-form"] {
-  flex: 1;
+.quote-column [data-testid="customer-form"] {
   margin-top: 0;
+  flex: 1;
   /* inputs stay at the top, the button row sits at the bottom of the stretched column
      so it lines up with the bottom of the (usually shorter) quote card beside it */
   justify-content: space-between;

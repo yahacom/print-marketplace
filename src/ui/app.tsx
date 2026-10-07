@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { UploadForm } from "./components/UploadForm.js";
 import { CustomerForm } from "./components/CustomerForm.js";
+import { ModelPreview } from "./components/ModelPreview.js";
 import { OrderResult } from "./components/OrderResult.js";
 import { QuoteResult } from "./components/QuoteResult.js";
 import { SlicingWait } from "./components/SlicingWait.js";
@@ -111,6 +112,9 @@ export function App({
   // The live quote request, if any. Results are applied only while it is still this
   // object, so a cancelled or replaced request can never write into a later flow (AC-ws-5).
   const activeQuote = useRef<QuoteRequest | null>(null);
+  // The in-memory File behind the current upload, kept alive so the quote screen can render
+  // it client-side (ModelPreview). Deliberately outside UploadState, which stays serializable.
+  const selectedFileRef = useRef<File | null>(null);
 
   // Leaving the page closes the socket, which makes the server cancel the slice.
   useEffect(() => () => activeQuote.current?.close(), []);
@@ -143,10 +147,12 @@ export function App({
     const request = activeQuote.current;
     activeQuote.current = null;
     request?.close();
+    selectedFileRef.current = null;
     setState(transitions.reset());
   }
 
   function handleFileSelected(file: File) {
+    selectedFileRef.current = file;
     setState(transitions.startUpload(file));
     submitUpload(file, (progress) =>
       setState(transitions.progress(file.name, progress)),
@@ -190,7 +196,10 @@ export function App({
       type="button"
       class="button"
       disabled={disabled}
-      onClick={() => setState(transitions.reset())}
+      onClick={() => {
+        selectedFileRef.current = null;
+        setState(transitions.reset());
+      }}
     >
       Back to start
     </button>
@@ -240,25 +249,31 @@ export function App({
       case "quote_ready":
         return (
           <div class="quote-layout">
-            <QuoteResult
-              outcome="success"
-              quote={state.quote}
-              filename={state.filename}
-            />
-            {state.fileId ? (
-              <CustomerForm
-                disabled={state.deciding}
-                onBackToStart={() => setState(transitions.reset())}
-                onSubmit={(customer) =>
-                  decide(
-                    (fileId) => orderClient.confirmOrder(fileId, customer),
-                    transitions.orderConfirmed,
-                  )
-                }
+            <ModelPreview file={selectedFileRef.current} />
+            <div class="quote-column">
+              <QuoteResult
+                outcome="success"
+                quote={state.quote}
+                filename={state.filename}
               />
-            ) : (
-              backToStart()
-            )}
+              {state.fileId ? (
+                <CustomerForm
+                  disabled={state.deciding}
+                  onBackToStart={() => {
+                    selectedFileRef.current = null;
+                    setState(transitions.reset());
+                  }}
+                  onSubmit={(customer) =>
+                    decide(
+                      (fileId) => orderClient.confirmOrder(fileId, customer),
+                      transitions.orderConfirmed,
+                    )
+                  }
+                />
+              ) : (
+                backToStart()
+              )}
+            </div>
           </div>
         );
       case "quote_error":
