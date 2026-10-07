@@ -45,7 +45,12 @@ describe("quote-engine metrics", () => {
       const service = createQuoteService({
         getModelPath: async () => "/storage/model.stl",
         queue: { enqueue: () => ({ id: "j", promise: Promise.resolve(sliced) }), cancel: () => {} },
-        parse: async () => ({ kind: "stats", timeMinutes: 1, filamentGrams: 1 }),
+        parse: async () => ({
+          kind: "stats",
+          timeMinutes: 1,
+          filamentGrams: 1,
+          dimensions: { x: 10, y: 20, z: 30 },
+        }),
         price: () => ({ timeCost: 1, materialCost: 1, margin: 1, totalPrice: 3 }),
         repository: { writeDraftOrder: async () => {} },
         log: { error: () => {} },

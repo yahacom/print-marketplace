@@ -31,6 +31,7 @@ const QUOTE: QuoteDone = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 const RAW_MESSAGE = "RAW-BACKEND-DETAIL";
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
@@ -45,7 +46,7 @@ const click = async (testId: string) => {
 };
 const buttonLabels = () => [...container.querySelectorAll("button")].map((b) => b.textContent);
 
-const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
 
 const confirmOrder = vi.fn<(fileId: string, customer: typeof CUSTOMER) => Promise<void>>();
 const declineOrder = vi.fn<(fileId: string) => Promise<void>>();
@@ -100,6 +101,25 @@ describe("confirm on the quote screen", () => {
     expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
   });
 
+  it("defaults Quantity to 1 and disables Confirm order on a zero or non-integer quantity", async () => {
+    renderQuote();
+    await fillCustomerForm();
+    const quantity = $("customer-quantity") as HTMLInputElement;
+
+    expect(quantity.value).toBe("1");
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
+
+    quantity.value = "0";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(true);
+
+    quantity.value = "3";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("AC-01: Confirm succeeds -> confirmed message, decision button gone", async () => {
     renderQuote();
     await fillCustomerForm();
@@ -110,6 +130,19 @@ describe("confirm on the quote screen", () => {
     expect($("order-result-message")?.textContent).toBe("Order confirmed");
     expect($("confirm-button")).toBeNull();
     expect(buttonLabels()).toEqual(["Back to start"]);
+  });
+
+  it("sends the entered Quantity as a number in the confirm payload", async () => {
+    renderQuote();
+    await fillCustomerForm();
+    const quantity = $("customer-quantity") as HTMLInputElement;
+    quantity.value = "4";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+
+    await click("confirm-button");
+
+    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID, { ...CUSTOMER, quantity: 4 });
   });
 
   it("AC-04: Confirm on an already-decided quote shows the final-decision text and no retry", async () => {

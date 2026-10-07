@@ -10,6 +10,7 @@ export type CustomerInfo = {
   name: string;
   phone: string;
   email: string;
+  quantity: number;
 };
 
 export type DecisionFields = {

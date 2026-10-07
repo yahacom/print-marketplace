@@ -2,7 +2,7 @@
 // rejects with an `OrderFailure` that `errors.ts` maps to user text.
 import type { OrderFailure } from "./errors.js";
 
-export type CustomerInfo = { name: string; phone: string; email: string };
+export type CustomerInfo = { name: string; phone: string; email: string; quantity: number };
 
 // Used when an error response carries no parseable `{code, message}` (e.g. a proxy's HTML 502 page).
 const UNPARSEABLE_ERROR_CODE = "unknown";

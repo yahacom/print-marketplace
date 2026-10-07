@@ -13,10 +13,11 @@ const isNonEmptyString = (value: unknown): value is string =>
 // Trims whitespace so a name/phone of only spaces is rejected, not stored.
 function parseCustomer(body: unknown): CustomerInfo | null {
   if (typeof body !== "object" || body === null) return null;
-  const { name, phone, email } = body as Record<string, unknown>;
+  const { name, phone, email, quantity } = body as Record<string, unknown>;
   if (!isNonEmptyString(name) || !isNonEmptyString(phone) || !isNonEmptyString(email)) return null;
   if (!EMAIL_PATTERN.test(email.trim())) return null;
-  return { name: name.trim(), phone: phone.trim(), email: email.trim() };
+  if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) return null;
+  return { name: name.trim(), phone: phone.trim(), email: email.trim(), quantity };
 }
 
 // Response bodies follow SAD §6 flows 1-6 (no openapi.yaml exists for this
@@ -36,7 +37,7 @@ const INTERNAL_ERROR_BODY = {
 };
 const INVALID_CUSTOMER_BODY = {
   code: "order.invalid_customer",
-  message: "name, phone and email are required to confirm an order",
+  message: "name, phone, email and quantity are required to confirm an order",
 };
 
 export interface OrderRoutesOptions {

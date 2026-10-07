@@ -16,7 +16,12 @@ const sliceResult = (overrides: Partial<SliceResult> = {}): SliceResult => ({
   ...overrides,
 });
 
-const STATS: ParsedSlice = { kind: "stats", timeMinutes: 90, filamentGrams: 50 };
+const STATS: ParsedSlice = {
+  kind: "stats",
+  timeMinutes: 90,
+  filamentGrams: 50,
+  dimensions: { x: 10, y: 20, z: 30 },
+};
 
 // Deferred slice outcome so tests control when the queue "finishes" a job.
 const deferred = <T>() => {
@@ -61,6 +66,7 @@ describe("requestQuote", () => {
       timeMinutes: 90,
       filamentGrams: 50,
       breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+      dimensions: { x: 10, y: 20, z: 30 },
     };
     expect(result).toEqual(expected);
     expect(writeDraftOrder).toHaveBeenCalledWith(FILE_ID, {

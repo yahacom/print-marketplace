@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { confirmOrder, declineOrder } from "./order-client.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
-const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
 
 const fetchMock = vi.fn();
 

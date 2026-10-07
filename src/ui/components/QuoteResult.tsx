@@ -28,7 +28,7 @@ export function QuoteResult(props: QuoteOutcome) {
     );
   }
 
-  const { price, timeMinutes, filamentGrams } = props.quote;
+  const { price, timeMinutes, filamentGrams, dimensions } = props.quote;
   return (
     <section data-testid="quote-result" data-outcome="success" class="quote-card">
       <p class="active-filename" data-testid="active-filename">{props.filename}</p>
@@ -39,6 +39,11 @@ export function QuoteResult(props: QuoteOutcome) {
         Print time: <span data-testid="quote-time">{formatDuration(timeMinutes)}</span>
         {" · "}
         Filament: <span data-testid="quote-filament">{filamentGrams.toFixed(1)} g</span>
+      </p>
+      <p>
+        Dimensions: <span data-testid="quote-dimensions">
+          {dimensions.x.toFixed(1)} × {dimensions.y.toFixed(1)} × {dimensions.z.toFixed(1)} mm
+        </span>
       </p>
     </section>
   );

@@ -14,6 +14,7 @@ export type QuoteSuccess = {
   timeMinutes: number;
   filamentGrams: number;
   breakdown: Record<string, number>;
+  dimensions: { x: number; y: number; z: number };
 };
 export type QuoteErrorCode =
   | "quote.not_found"
@@ -107,6 +108,7 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
         timeMinutes: parsed.timeMinutes,
         filamentGrams: parsed.filamentGrams,
         breakdown: { timeCost, materialCost, margin },
+        dimensions: parsed.dimensions,
       };
 
       // Last point where cancellation can win: check and write are in the same

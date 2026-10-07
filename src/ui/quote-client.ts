@@ -9,11 +9,18 @@ export interface QuoteBreakdown {
   margin: number;
 }
 
+export interface QuoteDimensions {
+  x: number;
+  y: number;
+  z: number;
+}
+
 export interface QuoteDone {
   price: number;
   timeMinutes: number;
   filamentGrams: number;
   breakdown: QuoteBreakdown;
+  dimensions: QuoteDimensions;
 }
 
 export interface QuoteRequest {
@@ -45,7 +52,7 @@ function parseJson(text: string): unknown {
 }
 
 function toQuoteDone(body: Record<string, unknown>): QuoteDone | undefined {
-  const { price, timeMinutes, filamentGrams, breakdown } = body;
+  const { price, timeMinutes, filamentGrams, breakdown, dimensions } = body;
   if (
     isNumber(price) &&
     isNumber(timeMinutes) &&
@@ -53,7 +60,11 @@ function toQuoteDone(body: Record<string, unknown>): QuoteDone | undefined {
     isRecord(breakdown) &&
     isNumber(breakdown.timeCost) &&
     isNumber(breakdown.materialCost) &&
-    isNumber(breakdown.margin)
+    isNumber(breakdown.margin) &&
+    isRecord(dimensions) &&
+    isNumber(dimensions.x) &&
+    isNumber(dimensions.y) &&
+    isNumber(dimensions.z)
   ) {
     return {
       price,
@@ -63,6 +74,11 @@ function toQuoteDone(body: Record<string, unknown>): QuoteDone | undefined {
         timeCost: breakdown.timeCost,
         materialCost: breakdown.materialCost,
         margin: breakdown.margin,
+      },
+      dimensions: {
+        x: dimensions.x,
+        y: dimensions.y,
+        z: dimensions.z,
       },
     };
   }

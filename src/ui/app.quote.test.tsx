@@ -100,6 +100,7 @@ const QUOTE = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 
 describe("App quote states", () => {

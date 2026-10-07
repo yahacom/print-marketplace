@@ -13,7 +13,7 @@ const quote: StoredOrder = {
   slicingTime: 1,
 };
 const decidedQuote = { ...quote, decision: "confirmed" } as StoredOrder;
-const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
 
 const getDraftOrder = vi.fn<OrderRepository["getDraftOrder"]>();
 const decideOrder = vi.fn<OrderRepository["decideOrder"]>();

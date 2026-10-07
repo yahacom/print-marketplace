@@ -4,7 +4,7 @@ import { orderConfirmationModule } from "../module.js";
 import type { OrderService } from "../services/order-service.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
-const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
 
 const order = {
   price: 9.5,
@@ -159,7 +159,7 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       code: "order.invalid_customer",
-      message: "name, phone and email are required to confirm an order",
+      message: "name, phone, email and quantity are required to confirm an order",
     });
     expect(decide).not.toHaveBeenCalled();
   });
@@ -168,13 +168,17 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
     ["blank name", { ...CUSTOMER, name: "   " }],
     ["blank phone", { ...CUSTOMER, phone: "" }],
     ["malformed email", { ...CUSTOMER, email: "not-an-email" }],
+    ["missing quantity", { name: CUSTOMER.name, phone: CUSTOMER.phone, email: CUSTOMER.email }],
+    ["zero quantity", { ...CUSTOMER, quantity: 0 }],
+    ["negative quantity", { ...CUSTOMER, quantity: -1 }],
+    ["non-integer quantity", { ...CUSTOMER, quantity: 1.5 }],
   ])("400 invalid_customer on %s, without reaching the service", async (_label, body) => {
     const response = await confirm(FILE_ID, body);
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       code: "order.invalid_customer",
-      message: "name, phone and email are required to confirm an order",
+      message: "name, phone, email and quantity are required to confirm an order",
     });
     expect(decide).not.toHaveBeenCalled();
   });
@@ -182,12 +186,13 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
   it("trims whitespace from name, phone and email before storing", async () => {
     decide.mockResolvedValue("decided");
 
-    await confirm(FILE_ID, { name: "  Ada  ", phone: " 555 ", email: " ada@example.com " });
+    await confirm(FILE_ID, { name: "  Ada  ", phone: " 555 ", email: " ada@example.com ", quantity: 2 });
 
     expect(decide).toHaveBeenCalledWith(FILE_ID, "confirmed", {
       name: "Ada",
       phone: "555",
       email: "ada@example.com",
+      quantity: 2,
     });
   });
 });

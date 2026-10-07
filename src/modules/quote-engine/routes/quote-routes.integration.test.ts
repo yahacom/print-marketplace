@@ -13,6 +13,7 @@ const SUCCESS = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 const REQUEST = JSON.stringify({ type: "quote.request", fileId: FILE_ID, filename: "model.stl" });
 
@@ -173,7 +174,12 @@ describe("quote WebSocket route", () => {
     const service = createQuoteService({
       getModelPath: async () => "/storage/model.stl",
       queue: { enqueue: () => ({ id: "queue-job", promise: slicing }), cancel: queueCancel },
-      parse: async () => ({ kind: "stats", timeMinutes: 90, filamentGrams: 50 }),
+      parse: async () => ({
+        kind: "stats",
+        timeMinutes: 90,
+        filamentGrams: 50,
+        dimensions: { x: 10, y: 20, z: 30 },
+      }),
       price: () => ({ timeCost: 3.75, materialCost: 1, margin: 0.95, totalPrice: 5.7 }),
       repository: { writeDraftOrder },
       log: { error: () => {} },

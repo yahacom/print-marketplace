@@ -18,9 +18,15 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [quantity, setQuantity] = useState("1");
 
+  const quantityValue = Number(quantity);
   const valid =
-    name.trim() !== "" && phone.trim() !== "" && EMAIL_PATTERN.test(email.trim());
+    name.trim() !== "" &&
+    phone.trim() !== "" &&
+    EMAIL_PATTERN.test(email.trim()) &&
+    Number.isInteger(quantityValue) &&
+    quantityValue > 0;
 
   return (
     <form
@@ -28,7 +34,12 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
       onSubmit={(event) => {
         event.preventDefault();
         if (valid) {
-          onSubmit({ name: name.trim(), phone: phone.trim(), email: email.trim() });
+          onSubmit({
+            name: name.trim(),
+            phone: phone.trim(),
+            email: email.trim(),
+            quantity: quantityValue,
+          });
         }
       }}
     >
@@ -58,6 +69,17 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
         value={email}
         disabled={disabled}
         onInput={(event) => setEmail(event.currentTarget.value)}
+      />
+      <input
+        type="number"
+        min="1"
+        step="1"
+        aria-label="Quantity"
+        placeholder="Quantity"
+        data-testid="customer-quantity"
+        value={quantity}
+        disabled={disabled}
+        onInput={(event) => setQuantity(event.currentTarget.value)}
       />
       <div class="form-actions">
         <button type="button" class="button" disabled={disabled} onClick={onBackToStart}>

@@ -42,7 +42,7 @@ const buildTestApp = () => {
   return app;
 };
 
-const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
 
 const post = (app: ReturnType<typeof buildTestApp>, fileId: string, action: "confirm" | "decline") =>
   app.inject({
@@ -89,13 +89,13 @@ describe("order-confirmation end to end", () => {
     const response = await app.inject({
       method: "POST",
       url: `/api/v1/orders/${fileId}/confirm`,
-      payload: { name: "Ada", phone: "", email: "ada@example.com" },
+      payload: { name: "Ada", phone: "", email: "ada@example.com", quantity: 1 },
     });
 
     expect(response.statusCode).toBe(400);
     expect(response.json()).toEqual({
       code: "order.invalid_customer",
-      message: "name, phone and email are required to confirm an order",
+      message: "name, phone, email and quantity are required to confirm an order",
     });
     expect(decisionWrites()).toHaveLength(0);
   });

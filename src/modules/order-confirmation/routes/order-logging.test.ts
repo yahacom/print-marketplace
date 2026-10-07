@@ -40,7 +40,7 @@ it("logs request_id as structured JSON for the GET, confirm and decline routes",
   await app.inject({
     method: "POST",
     url: `/api/v1/orders/${FILE_ID}/confirm`,
-    payload: { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" },
+    payload: { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 },
   });
   await app.inject({ method: "POST", url: `/api/v1/orders/${FILE_ID}/decline` });
 
