@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { UploadForm } from "./components/UploadForm.js";
+import { CustomerForm } from "./components/CustomerForm.js";
 import { OrderResult } from "./components/OrderResult.js";
 import { QuoteResult } from "./components/QuoteResult.js";
 import { SlicingWait } from "./components/SlicingWait.js";
 import { UploadResult } from "./components/UploadResult.js";
 import type { OrderFailure, QuoteFailure, UploadFailure } from "./errors.js";
-import { confirmOrder, declineOrder } from "./order-client.js";
+import { confirmOrder, declineOrder, type CustomerInfo } from "./order-client.js";
 import type { QuoteDone, QuoteRequest } from "./quote-client.js";
 import { submitUpload, type UploadProgressEvent } from "./upload-client.js";
 
@@ -92,7 +93,7 @@ interface AppProps {
   startQuote?: (fileId: string, filename: string) => QuoteRequest;
   // Injected by tests; defaults to the real order-confirmation client (T17).
   orderClient?: {
-    confirmOrder: (fileId: string) => Promise<void>;
+    confirmOrder: (fileId: string, customer: CustomerInfo) => Promise<void>;
     declineOrder: (fileId: string) => Promise<void>;
   };
 }
@@ -201,99 +202,110 @@ export function App({
     </p>
   );
 
-  switch (state.status) {
-    case "idle":
-      return <UploadForm onFileSelected={handleFileSelected} />;
-    case "uploading":
-      return (
-        <>
-          {filenameBanner(state.filename)}
+  function renderScreen() {
+    switch (state.status) {
+      case "idle":
+        return <UploadForm onFileSelected={handleFileSelected} />;
+      case "uploading":
+        return (
+          <>
+            {filenameBanner(state.filename)}
+            <UploadForm
+              onFileSelected={handleFileSelected}
+              progress={state.progress}
+            />
+          </>
+        );
+      case "error":
+        return (
           <UploadForm
             onFileSelected={handleFileSelected}
-            progress={state.progress}
-          />
-        </>
-      );
-    case "error":
-      return (
-        <UploadForm
-          onFileSelected={handleFileSelected}
-          failure={state.failure}
-        />
-      );
-    case "success":
-      return (
-        <>
-          <UploadResult outcome="success" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "slicing":
-      return (
-        <>
-          {filenameBanner(state.filename)}
-          <SlicingWait onBackToStart={cancelQuote} />
-        </>
-      );
-    case "quote_ready":
-      return (
-        <>
-          <QuoteResult
-            outcome="success"
-            quote={state.quote}
-            filename={state.filename}
-          />
-          {backToStart(state.deciding)}{" "}
-          {state.fileId && (
-            <button
-              type="button"
-              class="button button--confirm"
-              data-testid="confirm-button"
-              disabled={state.deciding}
-              onClick={() =>
-                decide(orderClient.confirmOrder, transitions.orderConfirmed)
-              }
-            >
-              Confirm order
-            </button>
-          )}
-        </>
-      );
-    case "quote_error":
-      return (
-        <>
-          <QuoteResult
-            outcome="error"
             failure={state.failure}
-            filename={state.filename}
           />
-          {backToStart()}
-        </>
-      );
-    case "order_confirmed":
-      return (
-        <>
-          <OrderResult outcome="confirmed" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "order_declined":
-      return (
-        <>
-          <OrderResult outcome="declined" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "order_error":
-      return (
-        <>
-          <OrderResult
-            outcome="error"
-            failure={state.failure}
-            filename={state.filename}
-          />
-          {backToStart()}
-        </>
-      );
+        );
+      case "success":
+        return (
+          <>
+            <UploadResult outcome="success" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "slicing":
+        return (
+          <>
+            {filenameBanner(state.filename)}
+            <SlicingWait onBackToStart={cancelQuote} />
+          </>
+        );
+      case "quote_ready":
+        return (
+          <div class="quote-layout">
+            <QuoteResult
+              outcome="success"
+              quote={state.quote}
+              filename={state.filename}
+            />
+            {state.fileId ? (
+              <CustomerForm
+                disabled={state.deciding}
+                onBackToStart={() => setState(transitions.reset())}
+                onSubmit={(customer) =>
+                  decide(
+                    (fileId) => orderClient.confirmOrder(fileId, customer),
+                    transitions.orderConfirmed,
+                  )
+                }
+              />
+            ) : (
+              backToStart()
+            )}
+          </div>
+        );
+      case "quote_error":
+        return (
+          <>
+            <QuoteResult
+              outcome="error"
+              failure={state.failure}
+              filename={state.filename}
+            />
+            {backToStart()}
+          </>
+        );
+      case "order_confirmed":
+        return (
+          <>
+            <OrderResult outcome="confirmed" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "order_declined":
+        return (
+          <>
+            <OrderResult outcome="declined" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "order_error":
+        return (
+          <>
+            <OrderResult
+              outcome="error"
+              failure={state.failure}
+              filename={state.filename}
+            />
+            {backToStart()}
+          </>
+        );
+    }
   }
+
+  // Keying the wrapper on status (not on finer-grained fields like `progress` or `deciding`)
+  // remounts it only on an actual screen change, which replays the CSS enter animation in
+  // styles.css; in-place updates within the same screen are untouched.
+  return (
+    <div class="screen" key={state.status}>
+      {renderScreen()}
+    </div>
+  );
 }

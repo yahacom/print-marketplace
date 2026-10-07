@@ -42,8 +42,14 @@ const buildTestApp = () => {
   return app;
 };
 
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
+
 const post = (app: ReturnType<typeof buildTestApp>, fileId: string, action: "confirm" | "decline") =>
-  app.inject({ method: "POST", url: `/api/v1/orders/${fileId}/${action}` });
+  app.inject({
+    method: "POST",
+    url: `/api/v1/orders/${fileId}/${action}`,
+    payload: action === "confirm" ? CUSTOMER : undefined,
+  });
 
 const get = (app: ReturnType<typeof buildTestApp>, fileId: string) =>
   app.inject({ url: `/api/v1/orders/${fileId}` });
@@ -73,6 +79,25 @@ describe("order-confirmation end to end", () => {
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual({ status: "confirmed" });
     expect((await get(app, fileId)).json()).toMatchObject({ state: "decided", decision: "confirmed" });
+    expect(docs.get(fileId)).toMatchObject({ customer: CUSTOMER });
+  });
+
+  it("400s and records nothing when the customer form is incomplete", async () => {
+    const fileId = await seedQuote();
+    const app = buildTestApp();
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/v1/orders/${fileId}/confirm`,
+      payload: { name: "Ada", phone: "", email: "ada@example.com" },
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "order.invalid_customer",
+      message: "name, phone and email are required to confirm an order",
+    });
+    expect(decisionWrites()).toHaveLength(0);
   });
 
   it("AC-02: declining a quote returns 200 and the decision is then visible", async () => {

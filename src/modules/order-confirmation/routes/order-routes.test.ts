@@ -4,6 +4,7 @@ import { orderConfirmationModule } from "../module.js";
 import type { OrderService } from "../services/order-service.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
 
 const order = {
   price: 9.5,
@@ -99,8 +100,8 @@ describe("GET /api/v1/orders/:fileId", () => {
 });
 
 describe("POST /api/v1/orders/:fileId/confirm", () => {
-  const confirm = (id = FILE_ID) =>
-    buildTestApp().inject({ method: "POST", url: `/api/v1/orders/${id}/confirm` });
+  const confirm = (id = FILE_ID, body: Record<string, unknown> = CUSTOMER) =>
+    buildTestApp().inject({ method: "POST", url: `/api/v1/orders/${id}/confirm`, payload: body });
 
   it("AC-01: 201 order confirmed", async () => {
     decide.mockResolvedValue("decided");
@@ -109,7 +110,7 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
 
     expect(response.statusCode).toBe(201);
     expect(response.json()).toEqual({ status: "confirmed" });
-    expect(decide).toHaveBeenCalledWith(FILE_ID, "confirmed");
+    expect(decide).toHaveBeenCalledWith(FILE_ID, "confirmed", CUSTOMER);
   });
 
   it("AC-03: 404 no-quote-yet", async () => {
@@ -150,6 +151,44 @@ describe("POST /api/v1/orders/:fileId/confirm", () => {
 
     expect(response.statusCode).toBe(404);
     expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("400 invalid_customer with no body, without reaching the service", async () => {
+    const response = await buildTestApp().inject({ method: "POST", url: `/api/v1/orders/${FILE_ID}/confirm` });
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "order.invalid_customer",
+      message: "name, phone and email are required to confirm an order",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["blank name", { ...CUSTOMER, name: "   " }],
+    ["blank phone", { ...CUSTOMER, phone: "" }],
+    ["malformed email", { ...CUSTOMER, email: "not-an-email" }],
+  ])("400 invalid_customer on %s, without reaching the service", async (_label, body) => {
+    const response = await confirm(FILE_ID, body);
+
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toEqual({
+      code: "order.invalid_customer",
+      message: "name, phone and email are required to confirm an order",
+    });
+    expect(decide).not.toHaveBeenCalled();
+  });
+
+  it("trims whitespace from name, phone and email before storing", async () => {
+    decide.mockResolvedValue("decided");
+
+    await confirm(FILE_ID, { name: "  Ada  ", phone: " 555 ", email: " ada@example.com " });
+
+    expect(decide).toHaveBeenCalledWith(FILE_ID, "confirmed", {
+      name: "Ada",
+      phone: "555",
+      email: "ada@example.com",
+    });
   });
 });
 

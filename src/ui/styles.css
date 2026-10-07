@@ -21,7 +21,7 @@ body {
 }
 
 #app {
-  width: min(520px, 100%);
+  width: min(720px, 100%);
   padding: 24px;
   text-align: center;
 }
@@ -116,4 +116,83 @@ body {
 .active-filename {
   font-weight: 600;
   margin: 0 0 16px;
+}
+
+.quote-layout {
+  display: flex;
+  gap: 24px;
+  /* default (stretch): both columns take the height of the taller one */
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.quote-layout .quote-card {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.quote-layout [data-testid="customer-form"] {
+  flex: 1;
+  margin-top: 0;
+  /* inputs stay at the top, the button row sits at the bottom of the stretched column
+     so it lines up with the bottom of the (usually shorter) quote card beside it */
+  justify-content: space-between;
+}
+
+@media (max-width: 640px) {
+  .quote-layout {
+    flex-direction: column;
+  }
+}
+
+[data-testid="customer-form"] {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 16px;
+}
+
+[data-testid="customer-form"] input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #94a3b8;
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+[data-testid="customer-form"] input:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.form-actions .button {
+  flex: 1;
+  padding: 12px 16px;
+}
+
+@keyframes screen-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.screen {
+  animation: screen-enter 240ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen {
+    animation: none;
+  }
 }

@@ -1,5 +1,10 @@
 import type { ModelFileCheck } from "../repositories/model-file-check.js";
-import type { Decision, OrderRepository, StoredOrder } from "../repositories/order-repository.js";
+import type {
+  CustomerInfo,
+  Decision,
+  OrderRepository,
+  StoredOrder,
+} from "../repositories/order-repository.js";
 
 export type DecideOutcome = "decided" | "already_decided" | "file_missing" | "not_found";
 
@@ -9,7 +14,7 @@ export type OrderState =
   | { kind: "ready"; order: StoredOrder };
 
 export type OrderService = {
-  decide: (fileId: string, decision: Decision) => Promise<DecideOutcome>;
+  decide: (fileId: string, decision: Decision, customer?: CustomerInfo) => Promise<DecideOutcome>;
   getOrderState: (fileId: string) => Promise<OrderState>;
 };
 
@@ -25,7 +30,7 @@ export const createOrderService = ({ repository, modelFileCheck }: Dependencies)
   // the file check, so a duplicate (AC-04) never reads as "file missing" (AC-05).
   // The transaction in decideOrder stays the real guard against a concurrent
   // decision; the early read only picks the right outcome for the common case.
-  decide: async (fileId, decision) => {
+  decide: async (fileId, decision, customer) => {
     const order = await repository.getDraftOrder(fileId);
     if (order === null) return "not_found";
     if (order.decision !== undefined) return "already_decided";
@@ -34,7 +39,7 @@ export const createOrderService = ({ repository, modelFileCheck }: Dependencies)
       return "file_missing";
     }
 
-    return repository.decideOrder(fileId, decision);
+    return repository.decideOrder(fileId, decision, customer);
   },
 
   // Flows 3 and 6: what the GET route shows for a fileId.

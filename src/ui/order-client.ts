@@ -2,6 +2,8 @@
 // rejects with an `OrderFailure` that `errors.ts` maps to user text.
 import type { OrderFailure } from "./errors.js";
 
+export type CustomerInfo = { name: string; phone: string; email: string };
+
 // Used when an error response carries no parseable `{code, message}` (e.g. a proxy's HTML 502 page).
 const UNPARSEABLE_ERROR_CODE = "unknown";
 
@@ -23,11 +25,19 @@ async function toBackendFailure(response: Response): Promise<OrderFailure> {
   return { kind: "backend", status: response.status, code: UNPARSEABLE_ERROR_CODE, message: text };
 }
 
-async function postDecision(fileId: string, action: "confirm" | "decline"): Promise<void> {
+async function postDecision(
+  fileId: string,
+  action: "confirm" | "decline",
+  customer?: CustomerInfo,
+): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`/api/v1/orders/${encodeURIComponent(fileId)}/${action}`, {
       method: "POST",
+      ...(customer && {
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customer),
+      }),
     });
   } catch {
     throw { kind: "network" } satisfies OrderFailure;
@@ -37,6 +47,9 @@ async function postDecision(fileId: string, action: "confirm" | "decline"): Prom
   }
 }
 
-export const confirmOrder = (fileId: string): Promise<void> => postDecision(fileId, "confirm");
+// Confirm requires contact details (Name/Phone/Email form on the quote screen); the
+// server stores them on the draft order alongside the decision.
+export const confirmOrder = (fileId: string, customer: CustomerInfo): Promise<void> =>
+  postDecision(fileId, "confirm", customer);
 
 export const declineOrder = (fileId: string): Promise<void> => postDecision(fileId, "decline");

@@ -6,12 +6,18 @@ const DRAFT_ORDERS_COLLECTION = "draftOrders";
 
 export type Decision = "confirmed" | "declined";
 
+export type CustomerInfo = {
+  name: string;
+  phone: string;
+  email: string;
+};
+
 export type DecisionFields = {
   decision: Decision;
   decidedAt: Timestamp;
 };
 
-export type StoredOrder = DraftOrder & Partial<DecisionFields>;
+export type StoredOrder = DraftOrder & Partial<DecisionFields> & Partial<{ customer: CustomerInfo }>;
 
 export type DecideResult = "decided" | "already_decided" | "not_found";
 
@@ -19,7 +25,9 @@ export type OrderRepository = {
   // The draftOrders document (quote fields, plus decision fields once decided),
   // or null when no quote exists for fileId.
   getDraftOrder: (fileId: string) => Promise<StoredOrder | null>;
-  decideOrder: (fileId: string, decision: Decision) => Promise<DecideResult>;
+  // `customer` is written alongside the decision only when given (confirm only; see
+  // order-routes.ts). It never updates an existing decision's customer fields.
+  decideOrder: (fileId: string, decision: Decision, customer?: CustomerInfo) => Promise<DecideResult>;
 };
 
 // Builds the Firestore-backed repository over quote-engine's draftOrders
@@ -42,14 +50,18 @@ export const createOrderRepository = (
     // transaction, so of two concurrent callers exactly one commits. Firestore
     // may re-run this body on contention, so it must stay free of side effects
     // beyond the transaction's own write.
-    decideOrder: (fileId, decision) =>
+    decideOrder: (fileId, decision, customer) =>
       db.runTransaction(async (transaction): Promise<DecideResult> => {
         const ref = draftOrders.doc(fileId);
         const snapshot = await transaction.get(ref);
         if (!snapshot.exists) return "not_found";
         if (snapshot.data()?.decision !== undefined) return "already_decided";
 
-        transaction.update(ref, { decision, decidedAt: FieldValue.serverTimestamp() });
+        transaction.update(ref, {
+          decision,
+          decidedAt: FieldValue.serverTimestamp(),
+          ...(customer ? { customer } : {}),
+        });
         return "decided";
       }),
   };

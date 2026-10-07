@@ -13,6 +13,7 @@ const quote: StoredOrder = {
   slicingTime: 1,
 };
 const decidedQuote = { ...quote, decision: "confirmed" } as StoredOrder;
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
 
 const getDraftOrder = vi.fn<OrderRepository["getDraftOrder"]>();
 const decideOrder = vi.fn<OrderRepository["decideOrder"]>();
@@ -26,12 +27,12 @@ beforeEach(() => {
 });
 
 describe("decide", () => {
-  it("AC-01: confirm records the decision after checking the model file", async () => {
+  it("AC-01: confirm records the decision and customer after checking the model file", async () => {
     getDraftOrder.mockResolvedValue(quote);
 
-    expect(await service.decide(FILE_ID, "confirmed")).toBe("decided");
+    expect(await service.decide(FILE_ID, "confirmed", CUSTOMER)).toBe("decided");
     expect(modelFileCheck).toHaveBeenCalledWith(FILE_ID);
-    expect(decideOrder).toHaveBeenCalledWith(FILE_ID, "confirmed");
+    expect(decideOrder).toHaveBeenCalledWith(FILE_ID, "confirmed", CUSTOMER);
   });
 
   it("AC-02: decline records the decision without checking the model file", async () => {
@@ -39,7 +40,7 @@ describe("decide", () => {
 
     expect(await service.decide(FILE_ID, "declined")).toBe("decided");
     expect(modelFileCheck).not.toHaveBeenCalled();
-    expect(decideOrder).toHaveBeenCalledWith(FILE_ID, "declined");
+    expect(decideOrder).toHaveBeenCalledWith(FILE_ID, "declined", undefined);
   });
 
   it.each(["confirmed", "declined"] as const)(

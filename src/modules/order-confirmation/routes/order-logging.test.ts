@@ -37,7 +37,11 @@ it("logs request_id as structured JSON for the GET, confirm and decline routes",
   const { app, lines } = appWithCapturedLogs();
 
   await app.inject({ url: `/api/v1/orders/${FILE_ID}` });
-  await app.inject({ method: "POST", url: `/api/v1/orders/${FILE_ID}/confirm` });
+  await app.inject({
+    method: "POST",
+    url: `/api/v1/orders/${FILE_ID}/confirm`,
+    payload: { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" },
+  });
   await app.inject({ method: "POST", url: `/api/v1/orders/${FILE_ID}/decline` });
 
   const entries = lines.map((line) => JSON.parse(line));

@@ -74,11 +74,14 @@ const ORDER_NOT_FOUND_TEXT =
 const ORDER_ALREADY_DECIDED_TEXT = "This quote already has a final decision.";
 const ORDER_FILE_MISSING_TEXT =
   "Your model needs to be re-uploaded before an order can be placed.";
+const ORDER_INVALID_CUSTOMER_TEXT =
+  "Please fill in your name, phone and email before confirming.";
 
 const ORDER_CODE_TEXT = new Map([
   ["order.not_found", ORDER_NOT_FOUND_TEXT],
   ["order.already_decided", ORDER_ALREADY_DECIDED_TEXT],
   ["order.file_missing", ORDER_FILE_MISSING_TEXT],
+  ["order.invalid_customer", ORDER_INVALID_CUSTOMER_TEXT],
 ]);
 
 export function toOrderUserMessage(failure: OrderFailure): string {

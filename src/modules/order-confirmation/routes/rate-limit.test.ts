@@ -4,6 +4,7 @@ import { orderConfirmationModule } from "../module.js";
 import type { OrderService } from "../services/order-service.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
 
 const decide = vi.fn<OrderService["decide"]>();
 const getOrderState = vi.fn<OrderService["getOrderState"]>();
@@ -17,7 +18,12 @@ const buildTestApp = () => {
 type TestApp = ReturnType<typeof buildTestApp>;
 
 const post = (app: TestApp, action: "confirm" | "decline", remoteAddress = "10.0.0.1") =>
-  app.inject({ method: "POST", url: `/api/v1/orders/${FILE_ID}/${action}`, remoteAddress });
+  app.inject({
+    method: "POST",
+    url: `/api/v1/orders/${FILE_ID}/${action}`,
+    remoteAddress,
+    payload: action === "confirm" ? CUSTOMER : undefined,
+  });
 
 beforeEach(() => {
   vi.resetAllMocks();

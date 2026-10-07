@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { confirmOrder, declineOrder } from "./order-client.js";
 
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com" };
 
 const fetchMock = vi.fn();
 
@@ -17,12 +18,16 @@ afterEach(() => {
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status });
 
-it("confirmOrder POSTs to the confirm route and resolves on 201", async () => {
+it("confirmOrder POSTs the customer details to the confirm route and resolves on 201", async () => {
   fetchMock.mockResolvedValue(jsonResponse(201, { status: "confirmed" }));
 
-  await expect(confirmOrder(FILE_ID)).resolves.toBeUndefined();
+  await expect(confirmOrder(FILE_ID, CUSTOMER)).resolves.toBeUndefined();
 
-  expect(fetchMock).toHaveBeenCalledWith(`/api/v1/orders/${FILE_ID}/confirm`, { method: "POST" });
+  expect(fetchMock).toHaveBeenCalledWith(`/api/v1/orders/${FILE_ID}/confirm`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(CUSTOMER),
+  });
 });
 
 it("declineOrder POSTs to the decline route and resolves on 200", async () => {
@@ -40,7 +45,7 @@ it.each([
 ])("rejects a %i with the backend code %s", async (status, code) => {
   fetchMock.mockResolvedValue(jsonResponse(status, { code, message: "raw detail" }));
 
-  await expect(confirmOrder(FILE_ID)).rejects.toEqual({
+  await expect(confirmOrder(FILE_ID, CUSTOMER)).rejects.toEqual({
     kind: "backend",
     status,
     code,
@@ -61,6 +66,6 @@ it("rejects a non-JSON error response (e.g. a proxy 502) with code unknown", asy
 it("rejects a network failure with { kind: network }", async () => {
   fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
 
-  await expect(confirmOrder(FILE_ID)).rejects.toEqual({ kind: "network" });
+  await expect(confirmOrder(FILE_ID, CUSTOMER)).rejects.toEqual({ kind: "network" });
   await expect(declineOrder(FILE_ID)).rejects.toEqual({ kind: "network" });
 });
