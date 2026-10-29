@@ -5,7 +5,10 @@
     "permissions": {
         "deny": [
             "Read(**/*firebase-adminsdk*.json)",
-            "Edit(**/*firebase-adminsdk*.json)"
+            "Edit(**/*firebase-adminsdk*.json)",
+            "Bash(git reset --hard*)",
+            "Bash(git push --force*)",
+            "Bash(git push -f*)"
         ]
     },
     "sandbox": {
@@ -21,6 +24,15 @@
                     {
                         "type": "command",
                         "command": "bash .claude/hooks/log-credential-access.sh"
+                    }
+                ]
+            },
+            {
+                "matcher": "Bash",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bash .claude/hooks/block-secret-commit.sh"
                     }
                 ]
             }
