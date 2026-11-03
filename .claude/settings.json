@@ -3,6 +3,12 @@
     "model": "sonnet",
     "effortLevel": "medium",
     "permissions": {
+        "allow": [
+            "Bash(gh pr create*)"
+        ],
+        "ask": [
+            "Bash(gh pr merge*)"
+        ],
         "deny": [
             "Read(**/*firebase-adminsdk*.json)",
             "Edit(**/*firebase-adminsdk*.json)",

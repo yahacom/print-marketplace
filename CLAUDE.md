@@ -40,6 +40,14 @@ Architecture decisions are in each feature's `adr/` directory.
 - **Never** `git push --force` to `main`, and never `git reset --hard` without the user explicitly asking (see the root CLAUDE.md's "Executing actions with care" — this project additionally denies `git reset --hard` via `.claude/settings.json`).
 - Diff review before merge is a human responsibility git won't enforce for you: use `git diff` / `git add -p` / `/diff` to check what's actually in a change before it lands on `main`.
 
+## Pull requests
+
+- **Platform/CLI:** GitHub via `gh pr create`. Commits must already be pushed (`git push -u origin <branch>`) before opening the PR.
+- **Title:** `type(scope): summary`, same Conventional Commits format as a commit subject.
+- **Body:** follow `.github/pull_request_template.md` (Summary, Why, Related) — fill it from the actual diff/commits, don't invent content. Add `Closes #N` under Related when the PR closes an issue.
+- **Draft first:** open as `--draft` while the branch is still in progress; mark ready for review only once it's done.
+- `gh pr create` is safe to run freely (closing/reopening a PR is cheap). `gh pr merge` is never run without the user's explicit go-ahead — merging is the one step that isn't easily undone.
+
 ## Key principles
 
 Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
