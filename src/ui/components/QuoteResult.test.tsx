@@ -14,6 +14,7 @@ const QUOTE = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10.456, y: 20.5, z: 30 },
 };
 
 it("AC-ui-1: shows the price and the print time", () => {
@@ -22,6 +23,7 @@ it("AC-ui-1: shows the price and the print time", () => {
   expect(text("quote-price")).toBe("$5.70");
   expect(text("quote-time")).toBe("1 h 30 min");
   expect(text("quote-filament")).toBe("50.0 g");
+  expect(text("quote-dimensions")).toBe("10.5 × 20.5 × 30.0 mm");
   expect(
     container.querySelector("[data-testid=quote-result] [data-testid=active-filename]")?.textContent,
   ).toBe("a.stl");

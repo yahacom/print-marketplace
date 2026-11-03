@@ -5,7 +5,7 @@ import { createQuoteRateLimiter } from "./rate-limit.js";
 // Protocol (ADR-0001), one quote request per connection:
 //   client -> server  first text message: { "type": "quote.request", "fileId": "<uuid>", "filename": "<original name>" }
 //   server -> client  exactly one of
-//     { "type": "quote.done", price, timeMinutes, filamentGrams, breakdown }
+//     { "type": "quote.done", price, timeMinutes, filamentGrams, breakdown, dimensions: { x, y, z } }
 //     { "type": "quote.error", code, message }
 //   then the server closes the socket (1000). Any later client message is ignored.
 // The file-id travels in the first message rather than the URL so it never

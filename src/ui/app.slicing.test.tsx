@@ -31,6 +31,7 @@ const QUOTE: QuoteDone = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 
 // A controllable quote request: the test decides when (and how) it settles.

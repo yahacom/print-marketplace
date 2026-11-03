@@ -16,7 +16,12 @@ const sliceResult = (overrides: Partial<SliceResult> = {}): SliceResult => ({
   ...overrides,
 });
 
-const STATS: ParsedSlice = { kind: "stats", timeMinutes: 90, filamentGrams: 50 };
+const STATS: ParsedSlice = {
+  kind: "stats",
+  timeMinutes: 90,
+  filamentGrams: 50,
+  dimensions: { x: 10, y: 20, z: 30 },
+};
 
 // Deferred slice outcome so tests control when the queue "finishes" a job.
 const deferred = <T>() => {
@@ -30,6 +35,7 @@ let writeDraftOrder: ReturnType<typeof vi.fn>;
 let enqueue: ReturnType<typeof vi.fn>;
 let queueCancel: ReturnType<typeof vi.fn>;
 let logError: ReturnType<typeof vi.fn>;
+let logInfo: ReturnType<typeof vi.fn>;
 let nextSlice: SliceResult;
 
 const settle = () => new Promise((resolve) => setImmediate(resolve));
@@ -40,13 +46,14 @@ beforeEach(() => {
   enqueue = vi.fn(() => ({ id: "queue-job-1", promise: Promise.resolve(nextSlice) }));
   queueCancel = vi.fn();
   logError = vi.fn();
+  logInfo = vi.fn();
   deps = {
     getModelPath: vi.fn(async () => "/storage/model.stl"),
     queue: { enqueue, cancel: queueCancel },
     parse: vi.fn(async () => STATS),
     price: vi.fn(() => ({ timeCost: 3.75, materialCost: 1, margin: 0.95, totalPrice: 5.7 })),
     repository: { writeDraftOrder },
-    log: { error: logError },
+    log: { error: logError, info: logInfo },
   } as QuoteServiceDeps;
 });
 
@@ -61,6 +68,7 @@ describe("requestQuote", () => {
       timeMinutes: 90,
       filamentGrams: 50,
       breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+      dimensions: { x: 10, y: 20, z: 30 },
     };
     expect(result).toEqual(expected);
     expect(writeDraftOrder).toHaveBeenCalledWith(FILE_ID, {

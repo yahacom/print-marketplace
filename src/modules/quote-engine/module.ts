@@ -18,6 +18,7 @@ export interface QuoteEngineOptions {
 // or malformed (T3).
 export const createDefaultQuoteService = (log: {
   error: (message: string) => void;
+  info: (message: string) => void;
 }): QuoteService =>
   createQuoteService({
     getModelPath,

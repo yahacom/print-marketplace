@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { UploadForm } from "./components/UploadForm.js";
+import { CustomerForm } from "./components/CustomerForm.js";
+import { ModelPreview } from "./components/ModelPreview.js";
 import { OrderResult } from "./components/OrderResult.js";
 import { QuoteResult } from "./components/QuoteResult.js";
 import { SlicingWait } from "./components/SlicingWait.js";
 import { UploadResult } from "./components/UploadResult.js";
 import type { OrderFailure, QuoteFailure, UploadFailure } from "./errors.js";
-import { confirmOrder, declineOrder } from "./order-client.js";
+import { confirmOrder, declineOrder, type CustomerInfo } from "./order-client.js";
 import type { QuoteDone, QuoteRequest } from "./quote-client.js";
 import { submitUpload, type UploadProgressEvent } from "./upload-client.js";
 
@@ -92,7 +94,7 @@ interface AppProps {
   startQuote?: (fileId: string, filename: string) => QuoteRequest;
   // Injected by tests; defaults to the real order-confirmation client (T17).
   orderClient?: {
-    confirmOrder: (fileId: string) => Promise<void>;
+    confirmOrder: (fileId: string, customer: CustomerInfo) => Promise<void>;
     declineOrder: (fileId: string) => Promise<void>;
   };
 }
@@ -110,6 +112,9 @@ export function App({
   // The live quote request, if any. Results are applied only while it is still this
   // object, so a cancelled or replaced request can never write into a later flow (AC-ws-5).
   const activeQuote = useRef<QuoteRequest | null>(null);
+  // The in-memory File behind the current upload, kept alive so the quote screen can render
+  // it client-side (ModelPreview). Deliberately outside UploadState, which stays serializable.
+  const selectedFileRef = useRef<File | null>(null);
 
   // Leaving the page closes the socket, which makes the server cancel the slice.
   useEffect(() => () => activeQuote.current?.close(), []);
@@ -142,10 +147,12 @@ export function App({
     const request = activeQuote.current;
     activeQuote.current = null;
     request?.close();
+    selectedFileRef.current = null;
     setState(transitions.reset());
   }
 
   function handleFileSelected(file: File) {
+    selectedFileRef.current = file;
     setState(transitions.startUpload(file));
     submitUpload(file, (progress) =>
       setState(transitions.progress(file.name, progress)),
@@ -189,7 +196,10 @@ export function App({
       type="button"
       class="button"
       disabled={disabled}
-      onClick={() => setState(transitions.reset())}
+      onClick={() => {
+        selectedFileRef.current = null;
+        setState(transitions.reset());
+      }}
     >
       Back to start
     </button>
@@ -201,99 +211,116 @@ export function App({
     </p>
   );
 
-  switch (state.status) {
-    case "idle":
-      return <UploadForm onFileSelected={handleFileSelected} />;
-    case "uploading":
-      return (
-        <>
-          {filenameBanner(state.filename)}
+  function renderScreen() {
+    switch (state.status) {
+      case "idle":
+        return <UploadForm onFileSelected={handleFileSelected} />;
+      case "uploading":
+        return (
+          <>
+            {filenameBanner(state.filename)}
+            <UploadForm
+              onFileSelected={handleFileSelected}
+              progress={state.progress}
+            />
+          </>
+        );
+      case "error":
+        return (
           <UploadForm
             onFileSelected={handleFileSelected}
-            progress={state.progress}
-          />
-        </>
-      );
-    case "error":
-      return (
-        <UploadForm
-          onFileSelected={handleFileSelected}
-          failure={state.failure}
-        />
-      );
-    case "success":
-      return (
-        <>
-          <UploadResult outcome="success" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "slicing":
-      return (
-        <>
-          {filenameBanner(state.filename)}
-          <SlicingWait onBackToStart={cancelQuote} />
-        </>
-      );
-    case "quote_ready":
-      return (
-        <>
-          <QuoteResult
-            outcome="success"
-            quote={state.quote}
-            filename={state.filename}
-          />
-          {backToStart(state.deciding)}{" "}
-          {state.fileId && (
-            <button
-              type="button"
-              class="button button--confirm"
-              data-testid="confirm-button"
-              disabled={state.deciding}
-              onClick={() =>
-                decide(orderClient.confirmOrder, transitions.orderConfirmed)
-              }
-            >
-              Confirm order
-            </button>
-          )}
-        </>
-      );
-    case "quote_error":
-      return (
-        <>
-          <QuoteResult
-            outcome="error"
             failure={state.failure}
-            filename={state.filename}
           />
-          {backToStart()}
-        </>
-      );
-    case "order_confirmed":
-      return (
-        <>
-          <OrderResult outcome="confirmed" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "order_declined":
-      return (
-        <>
-          <OrderResult outcome="declined" filename={state.filename} />
-          {backToStart()}
-        </>
-      );
-    case "order_error":
-      return (
-        <>
-          <OrderResult
-            outcome="error"
-            failure={state.failure}
-            filename={state.filename}
-          />
-          {backToStart()}
-        </>
-      );
+        );
+      case "success":
+        return (
+          <>
+            <UploadResult outcome="success" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "slicing":
+        return (
+          <>
+            {filenameBanner(state.filename)}
+            <SlicingWait onBackToStart={cancelQuote} />
+          </>
+        );
+      case "quote_ready":
+        return (
+          <div class="quote-layout">
+            <ModelPreview file={selectedFileRef.current} />
+            <div class="quote-column">
+              <QuoteResult
+                outcome="success"
+                quote={state.quote}
+                filename={state.filename}
+              />
+              {state.fileId ? (
+                <CustomerForm
+                  disabled={state.deciding}
+                  onBackToStart={() => {
+                    selectedFileRef.current = null;
+                    setState(transitions.reset());
+                  }}
+                  onSubmit={(customer) =>
+                    decide(
+                      (fileId) => orderClient.confirmOrder(fileId, customer),
+                      transitions.orderConfirmed,
+                    )
+                  }
+                />
+              ) : (
+                backToStart()
+              )}
+            </div>
+          </div>
+        );
+      case "quote_error":
+        return (
+          <>
+            <QuoteResult
+              outcome="error"
+              failure={state.failure}
+              filename={state.filename}
+            />
+            {backToStart()}
+          </>
+        );
+      case "order_confirmed":
+        return (
+          <>
+            <OrderResult outcome="confirmed" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "order_declined":
+        return (
+          <>
+            <OrderResult outcome="declined" filename={state.filename} />
+            {backToStart()}
+          </>
+        );
+      case "order_error":
+        return (
+          <>
+            <OrderResult
+              outcome="error"
+              failure={state.failure}
+              filename={state.filename}
+            />
+            {backToStart()}
+          </>
+        );
+    }
   }
+
+  // Keying the wrapper on status (not on finer-grained fields like `progress` or `deciding`)
+  // remounts it only on an actual screen change, which replays the CSS enter animation in
+  // styles.css; in-place updates within the same screen are untouched.
+  return (
+    <div class="screen" key={state.status}>
+      {renderScreen()}
+    </div>
+  );
 }

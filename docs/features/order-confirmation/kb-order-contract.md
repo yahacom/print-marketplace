@@ -8,6 +8,8 @@ Source of truth is the code: `src/modules/order-confirmation/routes/order-routes
 
 There is no `orders` collection. A decision is two fields, `decision` (`"confirmed"` | `"declined"`) and `decidedAt` (server timestamp), written onto quote-engine's `draftOrders/{fileId}` document (ADR-0006). `fileId` is the stl-upload file-id (UUID v4) used end to end (ADR-0003). order-confirmation never calls quote-engine; the two modules share only that document and `src/shared/firestore-app.ts`. The one in-process call is to stl-upload's `modelExists` (ADR-0002/0008).
 
+`POST .../confirm` also requires a JSON body `{name, phone, email}` (the quote screen's Name/Phone/Email form; Confirm order is disabled client-side until all three are filled). The route trims and validates them (non-empty, email matches a basic pattern) before calling the service; on success they are written as a `customer` map alongside `decision`/`decidedAt`, in the same transaction. `decline` takes no body and stores no customer fields.
+
 ## HTTP
 
 | Request | Outcome | Response |
@@ -20,6 +22,7 @@ There is no `orders` collection. A decision is two fields, `decision` (`"confirm
 | either POST | no document | `404 order.not_found` |
 | either POST | already has a decision | `409 order.already_decided` |
 | `POST .../confirm` only | model file gone from stl-upload | `409 order.file_missing` |
+| `POST .../confirm` only | missing/blank name, phone or email, or a malformed email | `400 order.invalid_customer` |
 | either POST | over 10 attempts/min/IP | `429 order.rate_limited` + `Retry-After` |
 | any | unexpected failure | `500 order.internal_error` (cause logged, not returned) |
 

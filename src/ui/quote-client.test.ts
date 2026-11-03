@@ -37,6 +37,7 @@ const DONE = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 
 beforeEach(() => {
@@ -82,6 +83,7 @@ it("resolves with the quote from quote.done", async () => {
     timeMinutes: 90,
     filamentGrams: 50,
     breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+    dimensions: { x: 10, y: 20, z: 30 },
   });
 });
 
@@ -99,6 +101,7 @@ it("rejects with a backend failure carrying the code from quote.error", async ()
 
 it.each([
   ["a quote.done with missing fields", { type: "quote.done", price: 1 }],
+  ["a quote.done with invalid dimensions", { ...DONE, dimensions: { x: 10, y: 20 } }],
   ["an unknown message type", { type: "hello" }],
 ])("rejects with an unknown backend code for %s", async (_name, body) => {
   const { promise } = requestQuote("file-1");

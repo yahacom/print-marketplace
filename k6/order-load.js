@@ -57,8 +57,15 @@ export function write() {
   if (index >= SEED_COUNT) throw new Error("SEED_COUNT too small for the write scenario");
 
   const action = index % 2 === 0 ? "confirm" : "decline";
-  const res = http.post(`${BASE_URL}/api/v1/orders/${fileIdAt(index)}/${action}`, null, {
+  // confirm requires contact details + quantity (order-routes.ts parseCustomer);
+  // decline takes no body.
+  const body =
+    action === "confirm"
+      ? JSON.stringify({ name: "Load Test", phone: "+10000000000", email: "load@test.dev", quantity: 1 })
+      : null;
+  const res = http.post(`${BASE_URL}/api/v1/orders/${fileIdAt(index)}/${action}`, body, {
     tags: { kind: "write" },
+    headers: action === "confirm" ? { "Content-Type": "application/json" } : undefined,
   });
 
   check(res, {

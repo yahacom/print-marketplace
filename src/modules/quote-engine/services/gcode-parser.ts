@@ -6,7 +6,12 @@ import { SLICER_PROFILE_PATH, type SliceResult } from "./slicer-service.js";
 // non-zero exit, so both are classified here from `--info` / the slice output.
 
 export type ParsedSlice =
-  | { kind: "stats"; timeMinutes: number; filamentGrams: number }
+  | {
+      kind: "stats";
+      timeMinutes: number;
+      filamentGrams: number;
+      dimensions: { x: number; y: number; z: number };
+    }
   | { kind: "non_manifold" }
   | { kind: "exceeds_build_volume" }
   | { kind: "parse_error"; reason: string };
@@ -117,5 +122,13 @@ export const parseSliceOutput = async (
   if (gramsText.trim() === "" || !Number.isFinite(filamentGrams)) {
     return { kind: "parse_error", reason: `unrecognized filament value: ${gramsText}` };
   }
-  return { kind: "stats", timeMinutes, filamentGrams };
+  const dimensions = {
+    x: Number(infoValues.get("size_x")),
+    y: Number(infoValues.get("size_y")),
+    z: Number(infoValues.get("size_z")),
+  };
+  if (![dimensions.x, dimensions.y, dimensions.z].every((d) => Number.isFinite(d) && d > 0)) {
+    return { kind: "parse_error", reason: "--info output has no usable size_x/size_y/size_z" };
+  }
+  return { kind: "stats", timeMinutes, filamentGrams, dimensions };
 };

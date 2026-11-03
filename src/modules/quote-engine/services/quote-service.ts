@@ -14,6 +14,7 @@ export type QuoteSuccess = {
   timeMinutes: number;
   filamentGrams: number;
   breakdown: Record<string, number>;
+  dimensions: { x: number; y: number; z: number };
 };
 export type QuoteErrorCode =
   | "quote.not_found"
@@ -30,7 +31,7 @@ export interface QuoteServiceDeps {
   parse: typeof parseSliceOutput;
   price: typeof computePrice;
   repository: QuoteRepository;
-  log: { error: (message: string) => void };
+  log: { error: (message: string) => void; info: (message: string) => void };
 }
 
 export interface QuoteRequest {
@@ -76,6 +77,11 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
     // Cancelled jobs were not (fully) sliced; counting them would skew the p95.
     if (!sliced.cancelled) {
       quoteMetrics.observeSliceDuration(sliceDurationMs / 1000);
+      deps.log.info(
+        `quote-engine: slice finished fileId=${fileId} durationMs=${Math.round(sliceDurationMs)} ` +
+          `infoExitCode=${sliced.info?.exitCode ?? "null"} sliceExitCode=${sliced.slice?.exitCode ?? "null"} ` +
+          `timedOut=${sliced.timedOut}`,
+      );
     }
 
     try {
@@ -107,6 +113,7 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
         timeMinutes: parsed.timeMinutes,
         filamentGrams: parsed.filamentGrams,
         breakdown: { timeCost, materialCost, margin },
+        dimensions: parsed.dimensions,
       };
 
       // Last point where cancellation can win: check and write are in the same
@@ -126,6 +133,10 @@ export const createQuoteService = (deps: QuoteServiceDeps) => {
         estimatedPrintTime: Math.round(parsed.timeMinutes * 60),
         slicingTime: toSeconds(sliceDurationMs),
       });
+      deps.log.info(
+        `quote-engine: quote ready fileId=${fileId} price=${quote.price} ` +
+          `timeMinutes=${parsed.timeMinutes} filamentGrams=${round2(parsed.filamentGrams)}`,
+      );
       return quote;
     } finally {
       await sliced.cleanup();

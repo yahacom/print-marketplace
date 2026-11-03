@@ -31,6 +31,7 @@ const QUOTE: QuoteDone = {
   timeMinutes: 90,
   filamentGrams: 50,
   breakdown: { timeCost: 3.75, materialCost: 1, margin: 0.95 },
+  dimensions: { x: 10, y: 20, z: 30 },
 };
 const RAW_MESSAGE = "RAW-BACKEND-DETAIL";
 const FILE_ID = "11111111-1111-4111-8111-111111111111";
@@ -45,8 +46,21 @@ const click = async (testId: string) => {
 };
 const buttonLabels = () => [...container.querySelectorAll("button")].map((b) => b.textContent);
 
-const confirmOrder = vi.fn<(fileId: string) => Promise<void>>();
+const CUSTOMER = { name: "Ada Lovelace", phone: "+1 555 0100", email: "ada@example.com", quantity: 1 };
+
+const confirmOrder = vi.fn<(fileId: string, customer: typeof CUSTOMER) => Promise<void>>();
 const declineOrder = vi.fn<(fileId: string) => Promise<void>>();
+
+async function fillCustomerForm() {
+  const input = (testId: string) => $(testId) as HTMLInputElement;
+  input("customer-name").value = CUSTOMER.name;
+  input("customer-name").dispatchEvent(new Event("input", { bubbles: true }));
+  input("customer-phone").value = CUSTOMER.phone;
+  input("customer-phone").dispatchEvent(new Event("input", { bubbles: true }));
+  input("customer-email").value = CUSTOMER.email;
+  input("customer-email").dispatchEvent(new Event("input", { bubbles: true }));
+  await flush();
+}
 
 const renderQuote = () =>
   render(
@@ -71,26 +85,70 @@ beforeEach(() => {
 afterEach(() => render(null, container));
 
 describe("confirm on the quote screen", () => {
-  it("shows Confirm next to Back to start", () => {
+  it("shows Back to start and Confirm order in one row", () => {
     renderQuote();
 
     expect(buttonLabels()).toEqual(["Back to start", "Confirm order"]);
   });
 
+  it("disables Confirm order until Name, Phone and Email are all filled", async () => {
+    renderQuote();
+
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(true);
+
+    await fillCustomerForm();
+
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("defaults Quantity to 1 and disables Confirm order on a zero or non-integer quantity", async () => {
+    renderQuote();
+    await fillCustomerForm();
+    const quantity = $("customer-quantity") as HTMLInputElement;
+
+    expect(quantity.value).toBe("1");
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
+
+    quantity.value = "0";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(true);
+
+    quantity.value = "3";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+    expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("AC-01: Confirm succeeds -> confirmed message, decision button gone", async () => {
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
-    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID);
+    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID, CUSTOMER);
     expect($("order-result-message")?.textContent).toBe("Order confirmed");
     expect($("confirm-button")).toBeNull();
     expect(buttonLabels()).toEqual(["Back to start"]);
   });
 
+  it("sends the entered Quantity as a number in the confirm payload", async () => {
+    renderQuote();
+    await fillCustomerForm();
+    const quantity = $("customer-quantity") as HTMLInputElement;
+    quantity.value = "4";
+    quantity.dispatchEvent(new Event("input", { bubbles: true }));
+    await flush();
+
+    await click("confirm-button");
+
+    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith(FILE_ID, { ...CUSTOMER, quantity: 4 });
+  });
+
   it("AC-04: Confirm on an already-decided quote shows the final-decision text and no retry", async () => {
     confirmOrder.mockRejectedValue(backendFailure(409, "order.already_decided"));
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
@@ -104,6 +162,7 @@ describe("confirm on the quote screen", () => {
   it("AC-05: Confirm with the model file gone shows the re-upload text", async () => {
     confirmOrder.mockRejectedValue(backendFailure(409, "order.file_missing"));
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
@@ -114,6 +173,7 @@ describe("confirm on the quote screen", () => {
   it("a network failure shows the unreachable text, not a raw error", async () => {
     confirmOrder.mockRejectedValue({ kind: "network" } satisfies OrderFailure);
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
@@ -123,6 +183,7 @@ describe("confirm on the quote screen", () => {
   it("an unrecognised backend code shows generic text, never the raw message", async () => {
     confirmOrder.mockRejectedValue(backendFailure(500, "order.internal_error"));
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
@@ -134,11 +195,15 @@ describe("confirm on the quote screen", () => {
     let settle!: () => void;
     confirmOrder.mockReturnValue(new Promise<void>((resolve) => (settle = resolve)));
     renderQuote();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
     expect(($("confirm-button") as HTMLButtonElement).disabled).toBe(true);
-    expect((container.querySelectorAll("button")[0] as HTMLButtonElement).disabled).toBe(true);
+    const backToStartButton = [...container.querySelectorAll("button")].find(
+      (button) => button.textContent === "Back to start",
+    ) as HTMLButtonElement;
+    expect(backToStartButton.disabled).toBe(true);
 
     settle();
     await flush();
@@ -149,6 +214,7 @@ describe("confirm on the quote screen", () => {
     let settle!: () => void;
     confirmOrder.mockReturnValue(new Promise<void>((resolve) => (settle = resolve)));
     renderQuote();
+    await fillCustomerForm();
     const button = $("confirm-button") as HTMLButtonElement;
 
     button.click();
@@ -163,6 +229,7 @@ describe("confirm on the quote screen", () => {
 
   it("Back to start from the final screen returns to the upload form", async () => {
     renderQuote();
+    await fillCustomerForm();
     await click("confirm-button");
 
     (container.querySelector("button") as HTMLButtonElement).click();
@@ -199,10 +266,11 @@ describe("the file id reaches the order client through the real upload -> quote 
     await flush();
     FakeXhr.last.respond(201, { file_id: "uploaded-id", status: "valid" });
     await flush();
+    await fillCustomerForm();
 
     await click("confirm-button");
 
-    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith("uploaded-id");
+    expect(confirmOrder).toHaveBeenCalledExactlyOnceWith("uploaded-id", CUSTOMER);
     expect($("order-result-message")?.textContent).toBe("Order confirmed");
   });
 });

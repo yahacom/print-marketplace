@@ -1,7 +1,24 @@
 import type { FastifyPluginAsync } from "fastify";
 import { SAFE_FILE_ID } from "../../stl-upload/file-id.js";
+import type { CustomerInfo } from "../repositories/order-repository.js";
 import type { OrderService } from "../services/order-service.js";
 import { createDecisionRateLimit } from "./rate-limit.js";
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.trim().length > 0;
+
+// Confirm requires contact details (goal: Name/Phone/Email form on the quote screen).
+// Trims whitespace so a name/phone of only spaces is rejected, not stored.
+function parseCustomer(body: unknown): CustomerInfo | null {
+  if (typeof body !== "object" || body === null) return null;
+  const { name, phone, email, quantity } = body as Record<string, unknown>;
+  if (!isNonEmptyString(name) || !isNonEmptyString(phone) || !isNonEmptyString(email)) return null;
+  if (!EMAIL_PATTERN.test(email.trim())) return null;
+  if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) return null;
+  return { name: name.trim(), phone: phone.trim(), email: email.trim(), quantity };
+}
 
 // Response bodies follow SAD §6 flows 1-6 (no openapi.yaml exists for this
 // feature yet). The UI shows its own copy keyed on `code`, never `message`.
@@ -17,6 +34,10 @@ const FILE_MISSING_BODY = {
 const INTERNAL_ERROR_BODY = {
   code: "order.internal_error",
   message: "Something went wrong. Please try again.",
+};
+const INVALID_CUSTOMER_BODY = {
+  code: "order.invalid_customer",
+  message: "name, phone, email and quantity are required to confirm an order",
 };
 
 export interface OrderRoutesOptions {
@@ -58,7 +79,7 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
   });
 
   // Flows 1, 4, 5 (AC-01, AC-04, AC-05).
-  app.post<{ Params: { fileId: string } }>(
+  app.post<{ Params: { fileId: string }; Body: unknown }>(
     "/api/v1/orders/:fileId/confirm",
     { onRequest: rateLimit },
     async (request, reply) => {
@@ -67,7 +88,12 @@ export const orderRoutes: FastifyPluginAsync<OrderRoutesOptions> = async (app, o
         return reply.code(404).send(NOT_FOUND_BODY);
       }
 
-      switch (await options.getService().decide(fileId, "confirmed")) {
+      const customer = parseCustomer(request.body);
+      if (customer === null) {
+        return reply.code(400).send(INVALID_CUSTOMER_BODY);
+      }
+
+      switch (await options.getService().decide(fileId, "confirmed", customer)) {
         case "decided":
           return reply.code(201).send({ status: "confirmed" });
         case "not_found":

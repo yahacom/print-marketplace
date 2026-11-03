@@ -10,6 +10,7 @@ const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const fixture = (name: string) => readFileSync(join(fixtureDir, name), "utf8");
 const realGcodePath = join(fixtureDir, "gcode-real-stats.gcode");
 const ok = (stdout = "", stderr = "") => ({ exitCode: 0, stdout, stderr });
+const REAL_DIMENSIONS = { x: 47.566012, y: 21.565994, z: 16.318001 };
 
 let dir: string;
 beforeEach(async () => {
@@ -36,6 +37,7 @@ it("AC-gp-1: parses stats from real --info output and real G-code comments", asy
   if (result.kind !== "stats") return;
   expect(result.timeMinutes).toBeCloseTo(29.07, 2); // 29m 4s
   expect(result.filamentGrams).toBe(4.26);
+  expect(result.dimensions).toEqual(REAL_DIMENSIONS);
 });
 
 it.each([
@@ -55,7 +57,12 @@ it.each([
     gcodePath: path,
   });
 
-  expect(result).toEqual({ kind: "stats", timeMinutes: minutes, filamentGrams: 1.5 });
+  expect(result).toEqual({
+    kind: "stats",
+    timeMinutes: minutes,
+    filamentGrams: 1.5,
+    dimensions: REAL_DIMENSIONS,
+  });
 });
 
 it("uses the normal-mode time, not the silent-mode line", async () => {
@@ -83,7 +90,12 @@ it("treats 0 g as a valid stat", async () => {
     gcodePath: path,
   });
 
-  expect(result).toEqual({ kind: "stats", timeMinutes: 1, filamentGrams: 0 });
+  expect(result).toEqual({
+    kind: "stats",
+    timeMinutes: 1,
+    filamentGrams: 0,
+    dimensions: REAL_DIMENSIONS,
+  });
 });
 
 it("AC-gp-2a: no G-code plus the slicer's out-of-volume message is exceeds_build_volume", async () => {
