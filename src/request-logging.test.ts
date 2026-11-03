@@ -33,8 +33,6 @@ it("logs one structured line per request with a generated request_id", async () 
 
   await app.inject({ method: "GET", url: "/health?token=abc" });
 
-  // eslint-disable-next-line no-console -- temporary CI diagnostic, removed after investigation
-  console.error("DEBUG lines:", JSON.stringify(lines));
   expect(lines).toHaveLength(1);
   const entry = parseLine(lines, 0);
   expect(entry).toMatchObject({
