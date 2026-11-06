@@ -14,19 +14,36 @@ interface CustomerFormProps {
 
 // Name/Phone/Email required before Confirm order is enabled. Trimmed values are what
 // get sent; the backend re-validates (never trust the client) and is the source of truth.
+type Field = "name" | "phone" | "email" | "quantity";
+
 export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerFormProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [quantity, setQuantity] = useState("1");
+  const [touched, setTouched] = useState<Record<Field, boolean>>({
+    name: false,
+    phone: false,
+    email: false,
+    quantity: false,
+  });
 
   const quantityValue = Number(quantity);
-  const valid =
-    name.trim() !== "" &&
-    phone.trim() !== "" &&
-    EMAIL_PATTERN.test(email.trim()) &&
-    Number.isInteger(quantityValue) &&
-    quantityValue > 0;
+  const nameValid = name.trim() !== "";
+  const phoneValid = phone.trim() !== "";
+  const emailValid = EMAIL_PATTERN.test(email.trim());
+  const quantityValid = Number.isInteger(quantityValue) && quantityValue > 0;
+  const valid = nameValid && phoneValid && emailValid && quantityValid;
+
+  const touch = (field: Field) => () => setTouched((prev) => ({ ...prev, [field]: true }));
+
+  const nameError = touched.name && !nameValid ? "Name is required" : null;
+  const phoneError = touched.phone && !phoneValid ? "Phone is required" : null;
+  const emailError = touched.email && !emailValid ? "Enter a valid email" : null;
+  const quantityError =
+    touched.quantity && !quantityValid
+      ? "Quantity must be a whole number greater than zero"
+      : null;
 
   return (
     <form
@@ -51,7 +68,9 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
         value={name}
         disabled={disabled}
         onInput={(event) => setName(event.currentTarget.value)}
+        onBlur={touch("name")}
       />
+      {nameError && <p data-testid="customer-name-error">{nameError}</p>}
       <input
         type="tel"
         aria-label="Phone"
@@ -60,7 +79,9 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
         value={phone}
         disabled={disabled}
         onInput={(event) => setPhone(event.currentTarget.value)}
+        onBlur={touch("phone")}
       />
+      {phoneError && <p data-testid="customer-phone-error">{phoneError}</p>}
       <input
         type="email"
         aria-label="Email"
@@ -69,7 +90,9 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
         value={email}
         disabled={disabled}
         onInput={(event) => setEmail(event.currentTarget.value)}
+        onBlur={touch("email")}
       />
+      {emailError && <p data-testid="customer-email-error">{emailError}</p>}
       <input
         type="number"
         min="1"
@@ -80,7 +103,9 @@ export function CustomerForm({ disabled, onSubmit, onBackToStart }: CustomerForm
         value={quantity}
         disabled={disabled}
         onInput={(event) => setQuantity(event.currentTarget.value)}
+        onBlur={touch("quantity")}
       />
+      {quantityError && <p data-testid="customer-quantity-error">{quantityError}</p>}
       <div class="form-actions">
         <button type="button" class="button" disabled={disabled} onClick={onBackToStart}>
           Back to start

@@ -4,3 +4,5 @@ dist-ui/
 storage/
 *firebase-adminsdk*.json
 .claude/credential-access.log
+.env
+.env.*
